@@ -1,0 +1,264 @@
+# VoxShield AI
+
+> **AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks**
+
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B%20%7C%203.13-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com)
+[![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://sqlalchemy.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://docker.com)
+[![Tests](https://img.shields.io/badge/Pytest-38%20Passed%20%7C%20100%25-brightgreen.svg)]()
+
+---
+
+## 1. Overview
+**VoxShield AI** is a real-time cybersecurity platform engineered to protect individuals, executives, and organizations from synthetic speech attacks, deepfake voice cloning, and social engineering impersonation.
+
+### Key Capabilities:
+- **Zero-Server-Audio Privacy Core**: Raw voice media is strictly peer-to-peer and encrypted with **DTLS-SRTP**. The server **NEVER** intercepts, stores, or processes real-time voice call audio.
+- **Client-Side AI Inference Telemetry**: Real-time detection runs on edge devices. Clients transmit only lightweight mathematical telemetry (probabilities, classification tags, timestamps).
+- **Multi-Signal Threat Engine**: Real-time evaluation fusing deepfake probabilities, speaker identity distance, liveness metrics, and trusted contact verification into a normalized **0–100 Threat Score**.
+- **Voice Fingerprinting & Trusted Contacts**: Privacy-preserving speaker representation management and contact relationship tracking to prevent targeted family and CEO impersonation.
+- **Canonical Incident Ledger & Blockchain Anchoring**: Automated generation of `RFC 8785` canonical incident records, SHA-256 evidence digests, and immutable distributed ledger anchoring (Mock or EVM-compatible networks).
+- **WebRTC Signaling Gateway**: Ephemeral WebSocket relay for SDP offer/answer and ICE candidate negotiation.
+
+---
+
+## 2. Technology Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Backend Framework** | [FastAPI](https://fastapi.tiangolo.com) (Python 3.12 / 3.13) |
+| **Validation & Schema** | [Pydantic v2](https://docs.pydantic.dev) & Pydantic Settings |
+| **ORM & Persistence** | [SQLAlchemy 2.0](https://www.sqlalchemy.org) (Async engine) |
+| **Database Migrations** | [Alembic](https://alembic.sqlalchemy.org) |
+| **Production Database** | [PostgreSQL 16](https://www.postgresql.org) (with seamless SQLite fallback) |
+| **Caching & Pub/Sub** | [Redis 7](https://redis.io) |
+| **Passwords & Cryptography**| [Argon2id](https://www.rfc-editor.org/rfc/rfc9106) (RFC 9106) & [PyJWT](https://pyjwt.readthedocs.io) |
+| **Signaling Protocol** | Asynchronous WebSockets (`wss://`) |
+| **Containerization** | Docker & Docker Compose |
+| **Automated Testing** | [Pytest](https://docs.pytest.org) & [HTTPX](https://www.python-httpx.org) (Async) |
+
+---
+
+## 3. Project Structure
+
+```
+voxshield-ai/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                     # FastAPI app factory & lifespan
+│   │   ├── api/
+│   │   │   ├── deps.py                 # Dependency injection (DB, auth, user)
+│   │   │   └── v1/
+│   │   │       ├── auth.py             # Register, login, refresh, logout, password
+│   │   │       ├── users.py            # User profile management
+│   │   │       ├── voices.py           # Voice profile metadata operations
+│   │   │       ├── trusted_voices.py   # Trusted contact registry
+│   │   │       ├── analysis.py         # Offline audio file analysis & comparison
+│   │   │       ├── calls.py            # Call lifecycle & security event ingestion
+│   │   │       ├── signaling.py        # WebRTC WebSocket signaling relay
+│   │   │       ├── threats.py          # Threat history, summaries, and timeline
+│   │   │       ├── incidents.py        # Incident reports & blockchain verification
+│   │   │       └── health.py           # Multi-component readiness probe
+│   │   ├── core/
+│   │   │   ├── config.py               # Pydantic Settings from environment
+│   │   │   ├── security.py             # Argon2id hasher & JWT tokens
+│   │   │   ├── logging.py              # Structured JSON logger & request tracing
+│   │   │   ├── middleware.py           # Request ID, Security Headers, Rate Limiter
+│   │   │   └── exceptions.py           # Unified error envelope & global handlers
+│   │   ├── db/
+│   │   │   ├── session.py              # Async SQLAlchemy engine & sessionmaker
+│   │   │   ├── base.py                 # DeclarativeBase, UUIDs, Timestamp mixins
+│   │   │   └── models/                 # 10 SQLAlchemy 2.0 ORM models
+│   │   ├── schemas/                    # Pydantic validation & response models
+│   │   ├── services/                   # Business logic layer
+│   │   ├── ai/                         # Pluggable AI architecture
+│   │   │   ├── interfaces/             # Detector, Embedding, Comparison, Liveness ABCs
+│   │   │   ├── adapters/               # Mock adapters with realistic distributions
+│   │   │   ├── threat_engine.py        # Multi-signal 0-100 scoring algorithm
+│   │   │   └── pipeline.py             # Unified analysis pipeline
+│   │   ├── webrtc/                     # WebRTC signaling
+│   │   │   ├── session_manager.py      # Connection registry & message router
+│   │   │   └── models.py               # Signaling message schema
+│   │   ├── blockchain/                 # Blockchain evidence anchoring
+│   │   │   ├── interface.py            # Abstract BlockchainAdapter
+│   │   │   ├── mock.py                 # Simulated EVM adapter
+│   │   │   └── evm.py                  # Live Web3/EVM adapter
+│   │   └── utils/
+│   ├── alembic/                        # Migration scripts
+│   ├── tests/                          # Automated Pytest suite (38 tests)
+│   ├── requirements.txt                # Dependencies
+│   ├── Dockerfile                      # Multi-stage container image
+│   └── .env.example                    # Environment template
+├── docs/                               # Formal architectural documentation
+│   ├── ARCHITECTURE.md
+│   ├── API_SPECIFICATION.md
+│   ├── DATABASE_DESIGN.md
+│   ├── SECURITY_MODEL.md
+│   ├── AI_PIPELINE.md
+│   ├── WEBRTC_DESIGN.md
+│   ├── BLOCKCHAIN_DESIGN.md
+│   ├── IMPLEMENTATION_ROADMAP.md
+│   ├── API_EXAMPLES.md
+│   └── FRONTEND_INTEGRATION.md
+├── docker-compose.yml                  # Backend + PostgreSQL + Redis
+└── README.md                           # Master documentation
+```
+
+---
+
+## 4. Quickstart: Running Locally
+
+### 4.1 Prerequisites
+- Python 3.12 or 3.13 installed
+- Git
+
+### 4.2 Clone and Setup Environment
+```bash
+# Clone the repository
+cd voiceREG
+
+# Create and activate virtual environment
+python -m venv .venv
+# On Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
+# On macOS / Linux:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r backend/requirements.txt
+```
+
+### 4.3 Configure Environment Variables
+```bash
+cp backend/.env.example backend/.env
+```
+*(By default, `DATABASE_URL` is set to SQLite for zero-configuration instant local runs. In production, switch to PostgreSQL).*
+
+### 4.4 Run Database Migrations
+```bash
+cd backend
+alembic upgrade head
+```
+
+### 4.5 Start the Backend Server
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+The server will start at `http://127.0.0.1:8000`.
+
+---
+
+## 5. Running with Docker Compose
+
+To start the entire production-like cluster (FastAPI Backend + PostgreSQL 16 + Redis 7):
+
+```bash
+docker compose up --build
+```
+- API Base URL: `http://localhost:8000/api/v1`
+- Swagger UI Documentation: `http://localhost:8000/docs`
+- ReDoc Documentation: `http://localhost:8000/redoc`
+- Health Check: `http://localhost:8000/health`
+
+---
+
+## 6. Running Automated Tests
+
+VoxShield AI includes an automated Pytest suite covering authentication, token rotation, user profiles, voice profiles, trusted voices, offline analysis, voice comparison, call lifecycles, real-time WebRTC signaling, threat scoring, and blockchain verification.
+
+Run tests:
+```bash
+cd backend
+python -m pytest tests -v
+```
+
+Output:
+```
+======================= 38 passed, 4 warnings in 5.27s ========================
+```
+
+---
+
+## 7. Interactive API Documentation
+
+Once started, explore the complete interactive OpenAPI schema at:
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **OpenAPI JSON**: [http://localhost:8000/api/v1/openapi.json](http://localhost:8000/api/v1/openapi.json)
+
+---
+
+## 8. Core API Endpoint Inventory
+
+| Category | Method | Endpoint | Description |
+| :--- | :---: | :--- | :--- |
+| **Auth** | `POST` | `/api/v1/auth/register` | Register new user account |
+| **Auth** | `POST` | `/api/v1/auth/login` | Authenticate & obtain JWT tokens |
+| **Auth** | `POST` | `/api/v1/auth/refresh` | Single-use refresh token rotation |
+| **Auth** | `POST` | `/api/v1/auth/logout` | Revoke active refresh token |
+| **Auth** | `GET` | `/api/v1/auth/me` | Current authenticated user |
+| **Auth** | `POST` | `/api/v1/auth/change-password` | Update password & invalidate sessions |
+| **Users** | `GET` | `/api/v1/users/me` | Authenticated user profile |
+| **Users** | `PATCH` | `/api/v1/users/me` | Update display name or avatar |
+| **Users** | `GET` | `/api/v1/users/{id}` | Public safe profile (redacted) |
+| **Voices** | `POST` | `/api/v1/voices` | Create voice profile metadata |
+| **Voices** | `GET` | `/api/v1/voices` | List user voice profiles |
+| **Voices** | `GET` | `/api/v1/voices/{id}` | Get profile metadata (No raw audio/embeddings) |
+| **Voices** | `PATCH` | `/api/v1/voices/{id}` | Update profile status or label |
+| **Voices** | `DELETE` | `/api/v1/voices/{id}` | Delete voice profile |
+| **Trusted** | `POST` | `/api/v1/trusted-voices` | Register trusted contact |
+| **Trusted** | `GET` | `/api/v1/trusted-voices` | List trusted contacts |
+| **Trusted** | `GET` | `/api/v1/trusted-voices/{id}` | Get contact details |
+| **Trusted** | `PATCH` | `/api/v1/trusted-voices/{id}` | Update relationship or status |
+| **Trusted** | `DELETE`| `/api/v1/trusted-voices/{id}` | Remove trusted contact |
+| **Analysis**| `POST` | `/api/v1/analysis/audio` | Optional offline audio deepfake analysis |
+| **Analysis**| `GET` | `/api/v1/analysis/{id}` | Get prior audio analysis result |
+| **Analysis**| `POST` | `/api/v1/analysis/compare` | Compare reference vs. suspect representations |
+| **Calls** | `POST` | `/api/v1/calls` | Initiate call session (`RINGING`) |
+| **Calls** | `GET` | `/api/v1/calls` | List past and active calls |
+| **Calls** | `GET` | `/api/v1/calls/{id}` | Get call details |
+| **Calls** | `POST` | `/api/v1/calls/{id}/accept` | Accept incoming call |
+| **Calls** | `POST` | `/api/v1/calls/{id}/reject` | Reject incoming call |
+| **Calls** | `POST` | `/api/v1/calls/{id}/end` | Terminate active call |
+| **Calls** | `POST` | `/api/v1/calls/{id}/security-events` | Ingest real-time client detection alert |
+| **Calls** | `GET` | `/api/v1/calls/{id}/security-events` | List in-call security alerts |
+| **Signaling**| `WS` | `/api/v1/ws/signaling/{call_id}` | Authenticated WebRTC signaling relay |
+| **Threats** | `GET` | `/api/v1/threats` | Filter threat history by severity & type |
+| **Threats** | `GET` | `/api/v1/threats/summary` | Aggregate threat metrics & severity stats |
+| **Threats** | `GET` | `/api/v1/threats/timeline` | Daily time-series threat charting |
+| **Threats** | `GET` | `/api/v1/threats/{id}` | Get specific threat event |
+| **Incidents**| `POST` | `/api/v1/incidents` | Create tamper-evident incident report |
+| **Incidents**| `GET` | `/api/v1/incidents` | List user incidents |
+| **Incidents**| `GET` | `/api/v1/incidents/{id}` | Get incident report with canonical hash |
+| **Incidents**| `POST` | `/api/v1/incidents/{id}/anchor` | Anchor canonical hash to blockchain |
+| **Incidents**| `GET` | `/api/v1/incidents/{id}/verification`| Verify evidence against on-chain proof |
+| **Health** | `GET` | `/health` | Basic liveness probe |
+| **Health** | `GET` | `/api/v1/health` | Deep multi-component readiness probe |
+
+---
+
+## 9. Security & Cryptographic Boundaries
+
+1. **Argon2id Password Hashing**: Conforms to RFC 9106 ($m=64\text{MB}, t=3, p=4$).
+2. **JWT Security & Token Rotation**: 15-minute access tokens. 7-day refresh tokens stored as SHA-256 hashes. If an already-rotated refresh token is presented, the entire token family is immediately revoked to thwart token replay attacks.
+3. **Data Protection at Rest**: Biometric vectors are encrypted with AES-256-GCM. Raw audio is never retained.
+4. **Canonical Evidence Hashing**: Security incidents are deterministically formatted under `RFC 8785` (JSON Canonicalization Scheme) and hashed with `SHA-256`, producing tamper-evident cryptographic proofs.
+5. **HTTP Defense**: Sliding-window rate limiting, `X-Request-ID` correlation, `nosniff`, `DENY` frames, and strict CORS controls.
+
+---
+
+## 10. Documentation Index
+
+For detailed architectural specifications and client integration guides, refer to the `docs/` directory:
+- [System Architecture](file:///docs/ARCHITECTURE.md)
+- [API Specification](file:///docs/API_SPECIFICATION.md)
+- [Database Schema & ERD](file:///docs/DATABASE_DESIGN.md)
+- [Security Model & Threat Vectors](file:///docs/SECURITY_MODEL.md)
+- [AI Intelligence Pipeline & Threat Engine](file:///docs/AI_PIPELINE.md)
+- [WebRTC Real-Time Call Architecture](file:///docs/WEBRTC_DESIGN.md)
+- [Blockchain Evidence & Ledger Anchoring](file:///docs/BLOCKCHAIN_DESIGN.md)
+- [Implementation Roadmap](file:///docs/IMPLEMENTATION_ROADMAP.md)
+- [API Usage Examples (curl & JSON)](file:///docs/API_EXAMPLES.md)
+- [Frontend & Mobile Integration Contract](file:///docs/FRONTEND_INTEGRATION.md)

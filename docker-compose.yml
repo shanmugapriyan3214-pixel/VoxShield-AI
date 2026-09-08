@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  # ============================================================================
+  # VoxShield AI — Core Backend API & WebRTC Signaling Service
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: voxshield-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - PROJECT_NAME=VoxShield AI
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SECRET_KEY=voxshield-production-super-secret-key-0123456789abcdef0123456789abcdef
+      - ACCESS_TOKEN_EXPIRE_MINUTES=15
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - DATABASE_URL=postgresql+asyncpg://voxshield:voxshield_secure_pass@postgres:5432/voxshield_db
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=120
+      - AUTH_RATE_LIMIT_PER_MINUTE=20
+      - AI_DETECTOR_PROVIDER=mock
+      - AI_EMBEDDING_PROVIDER=mock
+      - AI_LIVENESS_PROVIDER=mock
+      - BLOCKCHAIN_PROVIDER=mock
+      - BLOCKCHAIN_NETWORK=mock-ledger
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - voxshield-network
+
+  # ============================================================================
+  # PostgreSQL 16 — Persistent Database
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: voxshield-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=voxshield
+      - POSTGRES_PASSWORD=voxshield_secure_pass
+      - POSTGRES_DB=voxshield_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voxshield -d voxshield_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - voxshield-network
+
+  # ============================================================================
+  # Redis 7 — In-Memory Cache & WebRTC Signaling Pub/Sub
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: voxshield-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - voxshield-network
+
+networks:
+  voxshield-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
