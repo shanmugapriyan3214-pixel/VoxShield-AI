@@ -1,50 +1,118 @@
-"""VoxShield AI — Local Deepfake Voice Detector."""
+"""VoxShield AI — Local Deepfake Voice Detector (Intelligent Adapter & Registry)."""
 
 import os
-import time
-import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-import numpy as np
 
+from app.ai.config import (
+    ENGINE_LOCAL_DSP,
+    ENGINE_MOCK_DEMO,
+    ENGINE_REAL_PRETRAINED,
+    ai_settings,
+)
 from app.ai.deepfake.base import DeepfakeDetector
-from app.ai.feature_extraction import audio_feature_extractor
+from app.ai.deepfake.dsp_detector import DSPDeepfakeDetector
+from app.ai.deepfake.mock import MockDeepfakeDetector
+from app.ai.deepfake.pretrained_model import PretrainedDeepfakeDetector
+from app.ai.registry import ModelMetadata, model_registry
 from app.ai.schemas import DeepfakeDetectionResult
 from app.core.logging import logger
 
 
 class LocalDeepfakeDetector(DeepfakeDetector):
-    """Local inference deepfake detector with audio DSP feature extraction and pluggable neural checkpoints."""
+    """Orchestrates genuine ONNX neural model execution with transparent DSP fallback.
+    
+    AUDIT HONESTY INVARIANT:
+    - If ONNX model weights exist -> Executes PretrainedDeepfakeDetector (REAL_PRETRAINED_MODEL)
+    - If weights are missing & fallback=dsp -> Executes DSPDeepfakeDetector (LOCAL_DSP_ANALYZER)
+    - If weights are missing & fallback=none -> Available=False (ADAPTER_READY_NO_WEIGHTS)
+    - Under NO condition is a DSP or Mock algorithm reported as a REAL_PRETRAINED_MODEL.
+    """
 
     def __init__(
         self,
-        model_name: str = "VoxShield-AcousticClassifier-v2",
-        model_version: str = "local-neural-v2.0",
+        model_name: Optional[str] = None,
+        model_version: Optional[str] = None,
         device: str = "cpu",
         model_path: Optional[str] = None,
+        fallback_mode: Optional[str] = None,
     ):
+        dev = device or ai_settings.AI_DEVICE
+        fb = fallback_mode or ai_settings.AI_FALLBACK_MODE
+        path = model_path or ai_settings.DEEPFAKE_MODEL_PATH
+
+        self.device = dev
+        self.model_path = path
+        self.fallback_mode = fb
+
+        self._active_engine: DeepfakeDetector
+        self._pretrained: Optional[PretrainedDeepfakeDetector] = None
+        self._dsp: DSPDeepfakeDetector = DSPDeepfakeDetector(device=dev)
+        self._mock: MockDeepfakeDetector = MockDeepfakeDetector(device=dev)
+
+        # 1. Attempt to load real pretrained model if checkpoint exists
+        if path and os.path.exists(path):
+            name = model_name or "AASIST-L-AntiSpoof-ONNX"
+            ver = model_version or "aasist-v1.0"
+            self._pretrained = PretrainedDeepfakeDetector(
+                model_path=path,
+                model_name=name,
+                model_version=ver,
+                device=dev,
+            )
+            if self._pretrained.available:
+                self._active_engine = self._pretrained
+            else:
+                self._active_engine = self._resolve_fallback()
+        else:
+            self._active_engine = self._resolve_fallback()
+
         super().__init__(
-            model_name=model_name,
-            model_version=model_version,
-            device=device,
-            engine_type="REAL_LOCAL_MODEL",
+            model_name=self._active_engine.model_name,
+            model_version=self._active_engine.model_version,
+            device=self._active_engine.device,
+            engine_type=self._active_engine.engine_type,
+            framework=self._active_engine.framework,
+            available=self._active_engine.available,
+            status=self._active_engine.status,
         )
-        self.model_path = model_path
-        self._onnx_session = None
-        self._initialized = False
 
-        if model_path and os.path.exists(model_path):
-            self._try_load_onnx_model(model_path)
+        # Register in central ModelRegistry
+        self._register_in_model_registry()
 
-    def _try_load_onnx_model(self, path: str):
-        try:
-            import onnxruntime as ort
-            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.device == "cuda" else ["CPUExecutionProvider"]
-            self._onnx_session = ort.InferenceSession(path, providers=providers)
-            self._initialized = True
-            logger.info(f"Loaded ONNX deepfake checkpoint from {path}")
-        except Exception as e:
-            logger.warning(f"Could not load ONNX model from {path}: {e}. Operating in local acoustic feature mode.")
+    def _resolve_fallback(self) -> DeepfakeDetector:
+        """Resolve fallback implementation when real neural weights are not present."""
+        if self.fallback_mode == "none":
+            # Declare explicitly unavailable
+            logger.warning("Pretrained deepfake model weights missing and AI_FALLBACK_MODE='none'. Model marked unavailable.")
+            detector = PretrainedDeepfakeDetector(model_path=self.model_path or "missing.onnx", device=self.device)
+            detector.available = False
+            detector.status = "ADAPTER_READY_NO_WEIGHTS"
+            return detector
+        elif self.fallback_mode == "mock":
+            logger.info("Operating deepfake detector in MOCK_DEMO_MODEL mode.")
+            return self._mock
+        else:
+            # Default fallback: LOCAL_DSP_ANALYZER
+            logger.info("Pretrained deepfake model weights not installed. Operating in LOCAL_DSP_ANALYZER mode.")
+            return self._dsp
+
+    def _register_in_model_registry(self) -> None:
+        model_registry.register(
+            "deepfake_detector",
+            ModelMetadata(
+                model_name=self.model_name,
+                version=self.model_version,
+                engine_type=self.engine_type,
+                framework=self.framework,
+                device=self.device,
+                input_sample_rate=16000,
+                input_duration_sec=1.5,
+                available=self.available,
+                status=self.status,
+                model_source="ASVspoof 2019/2021 Logical Access Benchmark (AASIST / RawNet2)",
+                description="Speech anti-spoofing and synthetic voice clone detector.",
+            ),
+        )
 
     async def analyze(
         self,
@@ -52,75 +120,24 @@ class LocalDeepfakeDetector(DeepfakeDetector):
         sample_rate: int = 16000,
         context: Optional[dict] = None,
     ) -> DeepfakeDetectionResult:
-        start_time = time.perf_counter()
-        analysis_id = str(uuid.uuid4())
+        result = await self._active_engine.analyze(audio_bytes, sample_rate=sample_rate, context=context)
+        # Update registry with latest inference benchmark timing
+        if result.inference_time_ms is not None:
+            model_registry.update_status(
+                "deepfake_detector",
+                available=self.available,
+                status=self.status,
+                engine_type=self.engine_type,
+                inference_time_ms=result.inference_time_ms,
+            )
+        return result
 
-        # 1. Extract physical acoustic features via DSP
-        waveform, sr = audio_feature_extractor.extract_waveform(audio_bytes, target_sr=sample_rate)
-        spec_feats = audio_feature_extractor.extract_spectral_features(waveform, sr=sr)
-        mfcc = audio_feature_extractor.extract_mfcc(waveform, sr=sr, n_mfcc=13)
-
-        # 2. If ONNX neural session available, run model inference
-        if self._onnx_session is not None:
-            try:
-                log_mel = audio_feature_extractor.extract_log_mel_spectrogram(waveform, sr=sr)
-                # Model expects batch shape [1, 1, n_mels, frames]
-                inp = np.expand_dims(np.expand_dims(log_mel, axis=0), axis=0).astype(np.float32)
-                input_name = self._onnx_session.get_inputs()[0].name
-                outputs = self._onnx_session.run(None, {input_name: inp})
-                probs = outputs[0][0]
-                ai_prob = float(probs[1]) if len(probs) > 1 else float(probs[0])
-            except Exception as e:
-                logger.warning(f"ONNX inference failed: {e}. Falling back to acoustic classifier.")
-                ai_prob = self._evaluate_acoustic_signatures(spec_feats, mfcc)
-        else:
-            # Real acoustic feature evaluation
-            ai_prob = self._evaluate_acoustic_signatures(spec_feats, mfcc)
-
-        ai_prob = round(float(min(1.0, max(0.0, ai_prob))), 4)
-        human_prob = round(1.0 - ai_prob, 4)
-
-        artifacts = []
-        if spec_feats["spectral_flatness"] > 0.45:
-            artifacts.append("unnatural_spectral_flatness")
-        if spec_feats["zero_crossing_rate"] > 0.35:
-            artifacts.append("high_frequency_phase_jitter")
-        if ai_prob >= 0.70:
-            artifacts.append("vocoder_harmonic_discontinuity")
-
-        if ai_prob >= 0.70:
-            classification = "LIKELY_AI_GENERATED"
-        elif ai_prob >= 0.40:
-            classification = "SUSPICIOUS"
-        else:
-            classification = "LIKELY_HUMAN"
-
-        elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
-
-        return DeepfakeDetectionResult(
-            analysis_id=analysis_id,
-            classification=classification,
-            ai_probability=ai_prob,
-            human_probability=human_prob,
-            speaker_match_score=round(max(0.0, 1.0 - ai_prob * 0.7), 4),
-            liveness_score=round(max(0.05, 1.0 - spec_feats["spectral_flatness"]), 4),
-            confidence=0.92,
-            model_version=self.model_version,
-            is_mock=False,
-            warning=None,
-            detected_artifacts=artifacts,
-            timestamp=datetime.now(timezone.utc),
-        )
-
-    def _evaluate_acoustic_signatures(self, spec_feats: dict, mfcc: np.ndarray) -> float:
-        """Physical heuristic: Vocoders exhibit elevated spectral flatness and lower MFCC variance."""
+    def _evaluate_acoustic_signatures(self, spec_feats: dict, mfcc: Any) -> float:
+        """Physical heuristic compatibility bridge."""
         flatness = spec_feats.get("spectral_flatness", 0.0)
         zcr = spec_feats.get("zero_crossing_rate", 0.0)
-        mfcc_var = float(np.var(mfcc)) if mfcc.size > 0 else 1.0
-
-        # Normal speech has low flatness (high peakiness) and rich MFCC variance.
-        # Synthetic speech often has flatter spectra and lower dynamic variability.
+        import numpy as np
+        mfcc_var = float(np.var(mfcc)) if hasattr(mfcc, "size") and mfcc.size > 0 else 1.0
         synthetic_index = (flatness * 1.8) + (zcr * 0.8) + (1.0 / (mfcc_var + 0.1) * 0.05)
-        # Normalize with sigmoid
         prob = 1.0 / (1.0 + np.exp(-(synthetic_index - 1.2) * 3.0))
         return float(prob)

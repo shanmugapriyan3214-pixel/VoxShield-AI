@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from app.ai.config import ENGINE_MOCK_DEMO
+
 
 class DeepfakeDetectionResult(BaseModel):
     """Output from deepfake acoustic and vocoder artifact analysis."""
@@ -14,7 +16,10 @@ class DeepfakeDetectionResult(BaseModel):
     speaker_match_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     liveness_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     confidence: float = Field(..., ge=0.0, le=1.0)
+    engine_type: str = Field(default=ENGINE_MOCK_DEMO, description="REAL_PRETRAINED_MODEL | LOCAL_DSP_ANALYZER | MOCK_DEMO_MODEL")
+    model_name: Optional[str] = None
     model_version: str
+    inference_time_ms: Optional[float] = None
     is_mock: bool = True
     warning: Optional[str] = None
     detected_artifacts: List[str] = Field(default_factory=list)
@@ -25,7 +30,10 @@ class SpeakerEmbeddingResult(BaseModel):
     """Normalized vector representation of speaker voice identity."""
     embedding: List[float]
     dimension: int
+    engine_type: str = Field(default=ENGINE_MOCK_DEMO, description="REAL_PRETRAINED_MODEL | LOCAL_DSP_ANALYZER | MOCK_DEMO_MODEL")
+    model_name: Optional[str] = None
     model_version: str
+    inference_time_ms: Optional[float] = None
     is_mock: bool = True
 
 
@@ -35,7 +43,10 @@ class SpeakerComparisonResult(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     is_match: bool
     threshold_used: float = 0.75
+    engine_type: str = Field(default=ENGINE_MOCK_DEMO, description="REAL_PRETRAINED_MODEL | LOCAL_DSP_ANALYZER | MOCK_DEMO_MODEL")
+    model_name: Optional[str] = None
     model_version: str
+    inference_time_ms: Optional[float] = None
     is_mock: bool = True
     analysis_id: str
     timestamp: datetime
@@ -47,5 +58,8 @@ class LivenessResult(BaseModel):
     replay_probability: float = Field(..., ge=0.0, le=1.0)
     confidence: float = Field(..., ge=0.0, le=1.0)
     room_acoustic_variance: float = Field(..., ge=0.0)
+    engine_type: str = Field(default=ENGINE_MOCK_DEMO, description="REAL_PRETRAINED_MODEL | LOCAL_DSP_ANALYZER | MOCK_DEMO_MODEL")
+    model_name: Optional[str] = None
     model_version: str
+    inference_time_ms: Optional[float] = None
     is_mock: bool = True

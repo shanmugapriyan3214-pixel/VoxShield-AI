@@ -3,9 +3,10 @@
 ## 1. Design Philosophy
 The VoxShield AI intelligence layer is structured around modular, dependency-injected interfaces rather than monolithic, hard-coded model checkpoints. This architecture guarantees:
 1. **Zero Cold-Start Lag & Dual Execution Modes**: The platform can run in `local` mode (real DSP feature extraction + ONNX runtime / local neural acoustic evaluation) or in `mock` mode (deterministic simulation for CI, unit testing, and offline demonstrations).
-2. **Transparent Model Labeling**: Every AI result is explicitly labeled with its `engine_type` (`REAL_LOCAL_MODEL` vs `MOCK_DEMO_MODEL`), ensuring transparency during demos, audits, and security evaluations.
-3. **Strict Client-Side / Edge Privacy Invariant (Zero-Server-Audio)**: In real-time voice calls, live audio buffers are analyzed exclusively on the user's edge client device (browser or native app). Unencrypted voice streams NEVER reach the backend server; only compact, privacy-safe security telemetry (`ai_generated_probability`, `speaker_match_probability`, `liveness_probability`) is transmitted.
-4. **Probabilistic Humility**: The platform rejects false claims of "100% deepfake immunity". Output classifications are probabilistic (`LIKELY_HUMAN`, `LIKELY_AI_GENERATED`, `SUSPICIOUS`, `UNKNOWN`).
+2. **Transparent Model Labeling**: Every AI result is explicitly labeled with its `engine_type` (`REAL_PRETRAINED_MODEL`, `LOCAL_DSP_ANALYZER`, or `MOCK_DEMO_MODEL`), ensuring transparency during demos, audits, and security evaluations. (See [AI Model Audit](AI_MODEL_AUDIT.md)).
+3. **Central Model Registry**: All models, adapters, versions, and benchmark inference timings are tracked in real-time via `ModelRegistry` and exposed at `GET /api/v1/ai/status`.
+4. **Strict Client-Side / Edge Privacy Invariant (Zero-Server-Audio)**: In real-time voice calls, live audio buffers are analyzed exclusively on the user's edge client device (browser or native app). Unencrypted voice streams NEVER reach the backend server; only compact, privacy-safe security telemetry (`ai_generated_probability`, `speaker_match_probability`, `liveness_probability`) is transmitted.
+5. **Probabilistic Humility**: The platform rejects false claims of "100% deepfake immunity". Output classifications are probabilistic (`LIKELY_HUMAN`, `LIKELY_AI_GENERATED`, `SUSPICIOUS`, `UNKNOWN`).
 
 ---
 

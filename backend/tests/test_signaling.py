@@ -12,62 +12,61 @@ def test_websocket_signaling_endpoint_auth_and_ping():
     """Test connecting to the signaling endpoint, authentication, and ping/pong."""
     import uuid
     uid = uuid.uuid4().hex[:8]
-    client = TestClient(app)
+    with TestClient(app) as client:
+        # 1. Reject without token
+        with pytest.raises(Exception):
+            with client.websocket_connect("/api/v1/ws/signaling/dummy-call-id"):
+                pass
 
-    # 1. Reject without token
-    with pytest.raises(Exception):
-        with client.websocket_connect("/api/v1/ws/signaling/dummy-call-id"):
-            pass
+        # 2. Register user to get valid token
+        reg = client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": f"signaling_user_{uid}@voxshield.io",
+                "username": f"sig_user_{uid}",
+                "display_name": "Sig User",
+                "password": "Password123!",
+            },
+        )
+        user_data = reg.json()["data"]
+        token = user_data["tokens"]["access_token"]
+        user_id = user_data["user"]["id"]
 
-    # 2. Register user to get valid token
-    reg = client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": f"signaling_user_{uid}@voxshield.io",
-            "username": f"sig_user_{uid}",
-            "display_name": "Sig User",
-            "password": "Password123!",
-        },
-    )
-    user_data = reg.json()["data"]
-    token = user_data["tokens"]["access_token"]
-    user_id = user_data["user"]["id"]
+        # 3. Create a call
+        reg2 = client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": f"sig_peer_{uid}@voxshield.io",
+                "username": f"sig_peer_{uid}",
+                "display_name": "Sig Peer",
+                "password": "Password123!",
+            },
+        )
+        peer_id = reg2.json()["data"]["user"]["id"]
 
-    # 3. Create a call
-    reg2 = client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": f"sig_peer_{uid}@voxshield.io",
-            "username": f"sig_peer_{uid}",
-            "display_name": "Sig Peer",
-            "password": "Password123!",
-        },
-    )
-    peer_id = reg2.json()["data"]["user"]["id"]
+        call_resp = client.post(
+            "/api/v1/calls",
+            json={"receiver_id": peer_id},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        call_id = call_resp.json()["data"]["id"]
 
-    call_resp = client.post(
-        "/api/v1/calls",
-        json={"receiver_id": peer_id},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    call_id = call_resp.json()["data"]["id"]
+        # 4. Connect with valid token
+        with client.websocket_connect(f"/api/v1/ws/signaling/{call_id}?token={token}") as ws:
+            # Send ping
+            ws.send_json({"type": "ping"})
+            # Receive pong
+            response = ws.receive_json()
+            assert response["type"] == "pong"
 
-    # 4. Connect with valid token
-    with client.websocket_connect(f"/api/v1/ws/signaling/{call_id}?token={token}") as ws:
-        # Send ping
-        ws.send_json({"type": "ping"})
-        # Receive pong
-        response = ws.receive_json()
-        assert response["type"] == "pong"
+            # Send call invite when peer not yet connected -> receive waiting status
+            ws.send_json({"type": "offer", "payload": {"sdp": "v=0..."}})
+            status_msg = ws.receive_json()
+            assert status_msg["type"] == "peer_status"
+            assert status_msg["status"] == "WAITING_FOR_PEER"
 
-        # Send call invite when peer not yet connected -> receive waiting status
-        ws.send_json({"type": "offer", "payload": {"sdp": "v=0..."}})
-        status_msg = ws.receive_json()
-        assert status_msg["type"] == "peer_status"
-        assert status_msg["status"] == "WAITING_FOR_PEER"
-
-        # Graceful close
-        ws.send_json({"type": "call_ended"})
+            # Graceful close
+            ws.send_json({"type": "call_ended"})
 
 
 @pytest.mark.asyncio

@@ -16,6 +16,7 @@ from app.ai.speaker.comparison import (
 from app.ai.liveness.detector import LocalLivenessDetector
 from app.ai.liveness.mock import MockLivenessDetector
 from app.ai.fusion.threat_fusion import threat_fusion_engine
+from app.ai.registry import model_registry
 from app.ai.schemas import DeepfakeDetectionResult
 from app.core.config import settings
 
@@ -37,6 +38,7 @@ class AIPipeline:
             self.detector = LocalDeepfakeDetector(
                 device=ai_settings.AI_DEVICE,
                 model_path=ai_settings.DEEPFAKE_MODEL_PATH,
+                fallback_mode=ai_settings.AI_FALLBACK_MODE,
             )
         else:
             self.detector = MockDeepfakeDetector(model_version=settings.AI_MODEL_VERSION)
@@ -47,6 +49,7 @@ class AIPipeline:
             self.embedding_service = LocalSpeakerEmbeddingService(
                 device=ai_settings.AI_DEVICE,
                 model_path=ai_settings.SPEAKER_MODEL_PATH,
+                fallback_mode=ai_settings.AI_FALLBACK_MODE,
             )
         else:
             self.embedding_service = MockSpeakerEmbeddingService()
@@ -58,18 +61,84 @@ class AIPipeline:
         else:
             self.comparison_service = MockSpeakerComparisonService()
 
-
         if liveness_detector is not None:
             self.liveness_detector = liveness_detector
         elif mode == "local":
             self.liveness_detector = LocalLivenessDetector(
                 device=ai_settings.AI_DEVICE,
                 model_path=ai_settings.LIVENESS_MODEL_PATH,
+                fallback_mode=ai_settings.AI_FALLBACK_MODE,
             )
         else:
             self.liveness_detector = MockLivenessDetector()
 
         self.threat_fusion = threat_fusion_engine
+        self._sync_registry()
+
+    def _sync_registry(self) -> None:
+        """Ensure all pipeline components are registered in the central model registry."""
+        from app.ai.registry import ModelMetadata
+
+        if not model_registry.get_model("deepfake_detector") and hasattr(self.detector, "get_status"):
+            st = self.detector.get_status()
+            model_registry.register(
+                "deepfake_detector",
+                ModelMetadata(
+                    model_name=st.get("model_name", "VoxShield-Detector"),
+                    version=st.get("model_version", "1.0.0"),
+                    engine_type=st.get("engine_type", "MOCK_DEMO_MODEL"),
+                    framework=st.get("framework", "mock"),
+                    device=st.get("device", "cpu"),
+                    available=st.get("available", True),
+                    status=st.get("status", "LOADED"),
+                    description="Speech deepfake and voice cloning detector.",
+                ),
+            )
+        if not model_registry.get_model("speaker_encoder") and hasattr(self.embedding_service, "get_status"):
+            st = self.embedding_service.get_status()
+            model_registry.register(
+                "speaker_encoder",
+                ModelMetadata(
+                    model_name=st.get("model_name", "VoxShield-SpeakerEncoder"),
+                    version=st.get("model_version", "1.0.0"),
+                    engine_type=st.get("engine_type", "MOCK_DEMO_MODEL"),
+                    framework=st.get("framework", "mock"),
+                    device=st.get("device", "cpu"),
+                    available=st.get("available", True),
+                    status=st.get("status", "LOADED"),
+                    description="Acoustic speaker embedding extractor.",
+                ),
+            )
+        if not model_registry.get_model("liveness_detector") and hasattr(self.liveness_detector, "get_status"):
+            st = self.liveness_detector.get_status()
+            model_registry.register(
+                "liveness_detector",
+                ModelMetadata(
+                    model_name=st.get("model_name", "VoxShield-Liveness"),
+                    version=st.get("model_version", "1.0.0"),
+                    engine_type=st.get("engine_type", "MOCK_DEMO_MODEL"),
+                    framework=st.get("framework", "mock"),
+                    device=st.get("device", "cpu"),
+                    available=st.get("available", True),
+                    status=st.get("status", "LOADED"),
+                    description="Acoustic liveness and anti-replay verification.",
+                ),
+            )
+        if not model_registry.get_model("speaker_verification") and hasattr(self.comparison_service, "get_status"):
+            st = self.comparison_service.get_status()
+            model_registry.register(
+                "speaker_verification",
+                ModelMetadata(
+                    model_name=st.get("model_name", "VoxShield-SpeakerVerification"),
+                    version=st.get("model_version", "1.0.0"),
+                    engine_type=st.get("engine_type", "LOCAL_DSP_ANALYZER"),
+                    framework=st.get("framework", "dsp_numpy"),
+                    device=st.get("device", "cpu"),
+                    available=st.get("available", True),
+                    status=st.get("status", "LOADED"),
+                    description="Speaker verification cosine similarity comparison engine.",
+                ),
+            )
 
     async def analyze_full(
         self,
@@ -87,7 +156,9 @@ class AIPipeline:
         """Return operational status and metadata for all AI subsystems."""
         return {
             "mode": ai_settings.AI_MODE,
+            "fallback_mode": ai_settings.AI_FALLBACK_MODE,
             "device": ai_settings.AI_DEVICE,
+            "models": model_registry.get_status_report(),
             "components": {
                 "deepfake_detector": self.detector.get_status(),
                 "speaker_embedding": self.embedding_service.get_status(),

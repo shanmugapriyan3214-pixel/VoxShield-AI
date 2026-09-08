@@ -359,55 +359,102 @@ Register trusted family, friends, or verified contacts.
     "success": true,
     "data": {
       "status": "OPERATIONAL",
-      "mode": "mock",
+      "mode": "local",
+      "fallback_mode": "dsp",
       "device": "cpu",
       "streaming_window": {
         "window_duration_sec": 1.5,
-        "hop_duration_sec": 1.0,
+        "hop_duration_sec": 0.75,
         "sample_rate": 16000
+      },
+      "models": {
+        "deepfake_detector": {
+          "model_name": "AASIST-L-AntiSpoof-ONNX",
+          "version": "aasist-v1.0",
+          "engine_type": "LOCAL_DSP_ANALYZER",
+          "framework": "dsp_numpy",
+          "device": "cpu",
+          "available": true,
+          "status": "FALLBACK_DSP",
+          "model_path": "[RESTRICTED_SERVER_PATH]",
+          "description": "Speech anti-spoofing and synthetic voice clone detector."
+        },
+        "speaker_encoder": {
+          "model_name": "ECAPA-TDNN-VoxCeleb-ONNX",
+          "version": "ecapa-v1.0",
+          "engine_type": "LOCAL_DSP_ANALYZER",
+          "framework": "dsp_numpy",
+          "device": "cpu",
+          "available": true,
+          "status": "FALLBACK_DSP",
+          "model_path": "[RESTRICTED_SERVER_PATH]",
+          "description": "Acoustic speaker embedding extractor."
+        },
+        "liveness_detector": {
+          "model_name": "VoxShield-AcousticLiveness-Local",
+          "version": "liveness-v2.5",
+          "engine_type": "LOCAL_DSP_ANALYZER",
+          "framework": "dsp_numpy",
+          "device": "cpu",
+          "available": true,
+          "status": "FALLBACK_DSP",
+          "description": "Liveness and loudspeaker replay attack detection engine."
+        },
+        "speaker_verification": {
+          "model_name": "VoxShield-SpeakerCosineSimilarity",
+          "version": "cosine-v2.5",
+          "engine_type": "LOCAL_DSP_ANALYZER",
+          "framework": "dsp_numpy",
+          "device": "cpu",
+          "available": true,
+          "status": "LOADED",
+          "description": "Speaker verification cosine similarity comparison engine."
+        }
       },
       "components": {
         "deepfake_detector": {
           "available": true,
           "model_name": "VoxShield-AcousticClassifier-v2",
-          "model_version": "local-neural-v2.0",
+          "model_version": "dsp-spectral-v2.5",
           "device": "cpu",
-          "engine_type": "REAL_LOCAL_MODEL"
+          "engine_type": "LOCAL_DSP_ANALYZER"
         },
         "speaker_embedding": {
           "available": true,
-          "model_name": "VoxShield-SpeakerEmbedding-Local",
-          "model_version": "local-ecapa-v1.0",
+          "model_name": "VoxShield-SpeakerEmbedding-DSP",
+          "model_version": "mfcc-projection-v2.5",
           "device": "cpu",
-          "engine_type": "REAL_LOCAL_MODEL"
+          "engine_type": "LOCAL_DSP_ANALYZER"
         },
         "speaker_comparison": {
           "available": true,
           "model_name": "VoxShield-SpeakerCosineSimilarity",
-          "model_version": "cosine-v1.0",
+          "model_version": "cosine-v2.5",
           "device": "cpu",
-          "engine_type": "REAL_LOCAL_MODEL"
+          "engine_type": "LOCAL_DSP_ANALYZER"
         },
         "liveness_detector": {
           "available": true,
-          "model_name": "VoxShield-AcousticLiveness-Local",
-          "model_version": "liveness-dsp-v1.0",
+          "model_name": "VoxShield-AcousticLiveness-DSP",
+          "model_version": "impulse-decay-v2.5",
           "device": "cpu",
-          "engine_type": "REAL_LOCAL_MODEL"
+          "engine_type": "LOCAL_DSP_ANALYZER"
         },
         "threat_fusion": {
           "available": true,
           "model_name": "VoxShield-ThreatFusion-v2",
-          "model_version": "fusion-v2.0",
+          "model_version": "fusion-v2.5",
           "device": "cpu",
-          "engine_type": "REAL_LOCAL_MODEL"
+          "engine_type": "LOCAL_DSP_ANALYZER"
         }
       },
       "privacy_policy": {
         "zero_server_audio": "Strictly Enforced: Voice streams are analyzed client-side; raw audio is never stored or transmitted to server.",
-        "biometric_protection": "Voice embeddings are treated as high-security biometric credentials and never returned via public APIs."
+        "biometric_protection": "Voice embeddings are treated as high-security biometric credentials and never returned via public APIs.",
+        "provenance_transparency": "Engine types are truthfully declared as REAL_PRETRAINED_MODEL, LOCAL_DSP_ANALYZER, or MOCK_DEMO_MODEL."
       }
-    }
+    },
+    "request_id": "c7a8b9e0-1234-5678-9abc-def012345678"
   }
   ```
 

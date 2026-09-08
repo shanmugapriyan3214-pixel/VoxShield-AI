@@ -121,6 +121,8 @@ class LocalStreamAnalyzer:
             "severity": assessment.severity,
             "recommended_action": assessment.recommended_action,
             "indicators": assessment.indicators,
+            "engine_type": self.deepfake_detector.engine_type,
+            "is_simulated": False,
             "client_timestamp_ms": int(time.time() * 1000),
         }
 
@@ -172,5 +174,9 @@ class LocalStreamAnalyzer:
             "recommended_action": assessment.recommended_action,
             "indicators": assessment.indicators,
             "scenario": scenario,
+            "engine_type": "MOCK_DEMO_MODEL",
+            "is_simulated": True,
+            "simulation_banner": "DEMO MODE — SIMULATED RESULT",
             "client_timestamp_ms": int(time.time() * 1000),
         }
+

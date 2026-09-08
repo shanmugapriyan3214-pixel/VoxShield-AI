@@ -23,7 +23,7 @@ def generate_audio_bytes(duration_sec: float = 1.0, sr: int = 16000, freq: float
 @pytest.mark.asyncio
 async def test_local_deepfake_detector_acoustic_features():
     detector = LocalDeepfakeDetector()
-    assert detector.engine_type == "REAL_LOCAL_MODEL"
+    assert detector.engine_type in ("REAL_PRETRAINED_MODEL", "LOCAL_DSP_ANALYZER")
     audio = generate_audio_bytes(duration_sec=1.0)
     result = await detector.analyze(audio)
 
@@ -38,7 +38,7 @@ async def test_local_deepfake_detector_acoustic_features():
 @pytest.mark.asyncio
 async def test_speaker_embedding_service_l2_normalization():
     service = LocalSpeakerEmbeddingService(dimension=192)
-    assert service.engine_type == "REAL_LOCAL_MODEL"
+    assert service.engine_type in ("REAL_PRETRAINED_MODEL", "LOCAL_DSP_ANALYZER")
     audio = generate_audio_bytes(duration_sec=1.5)
     result = await service.extract_embedding(audio)
 
@@ -73,7 +73,7 @@ def test_speaker_comparison_service():
 @pytest.mark.asyncio
 async def test_local_liveness_detector():
     liveness_detector = LocalLivenessDetector()
-    assert liveness_detector.engine_type == "REAL_LOCAL_MODEL"
+    assert liveness_detector.engine_type in ("REAL_PRETRAINED_MODEL", "LOCAL_DSP_ANALYZER")
     audio = generate_audio_bytes(duration_sec=1.0)
     res = await liveness_detector.detect_liveness(audio)
 
@@ -141,15 +141,15 @@ def test_model_labeling_transparency():
     # Verify strict distinction between real local models and mock demo models
     real_detector = LocalDeepfakeDetector()
     mock_detector = MockDeepfakeDetector()
-    assert real_detector.engine_type == "REAL_LOCAL_MODEL"
+    assert real_detector.engine_type in ("REAL_PRETRAINED_MODEL", "LOCAL_DSP_ANALYZER")
     assert mock_detector.engine_type == "MOCK_DEMO_MODEL"
 
     real_embedding = LocalSpeakerEmbeddingService()
     mock_embedding = MockSpeakerEmbeddingService()
-    assert real_embedding.engine_type == "REAL_LOCAL_MODEL"
+    assert real_embedding.engine_type in ("REAL_PRETRAINED_MODEL", "LOCAL_DSP_ANALYZER")
     assert mock_embedding.engine_type == "MOCK_DEMO_MODEL"
 
     real_liveness = LocalLivenessDetector()
     mock_liveness = MockLivenessDetector()
-    assert real_liveness.engine_type == "REAL_LOCAL_MODEL"
+    assert real_liveness.engine_type in ("REAL_PRETRAINED_MODEL", "LOCAL_DSP_ANALYZER")
     assert mock_liveness.engine_type == "MOCK_DEMO_MODEL"

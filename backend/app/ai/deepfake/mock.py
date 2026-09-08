@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+from app.ai.config import ENGINE_MOCK_DEMO
 from app.ai.deepfake.base import DeepfakeDetector
 from app.ai.schemas import DeepfakeDetectionResult
 
@@ -15,7 +16,7 @@ class MockDeepfakeDetector(DeepfakeDetector):
 
     def __init__(
         self,
-        model_name: str = "VoxShield-MockNeural",
+        model_name: str = "VoxShield-MockDeepfakeDetector",
         model_version: str = "mock-voxguard-v1.0-demo",
         device: str = "cpu",
     ):
@@ -23,7 +24,10 @@ class MockDeepfakeDetector(DeepfakeDetector):
             model_name=model_name,
             model_version=model_version,
             device=device,
-            engine_type="MOCK_DEMO_MODEL",
+            engine_type=ENGINE_MOCK_DEMO,
+            framework="mock",
+            available=True,
+            status="MOCK",
         )
 
     async def analyze(
@@ -80,7 +84,10 @@ class MockDeepfakeDetector(DeepfakeDetector):
             speaker_match_score=0.88 if classification == "LIKELY_HUMAN" else 0.42,
             liveness_score=0.85 if classification == "LIKELY_HUMAN" else 0.35,
             confidence=confidence,
+            engine_type=self.engine_type,
+            model_name=self.model_name,
             model_version=self.model_version,
+            inference_time_ms=elapsed_ms,
             is_mock=True,
             warning="DEMO/MOCK: Simulated neural output. Does not constitute cryptographic or live guarantee.",
             detected_artifacts=artifacts,

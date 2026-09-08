@@ -99,6 +99,11 @@ async def analyze_audio_file(
     await db.commit()
     await db.refresh(db_analysis)
 
+    warning_msg = "PRIVACY NOTICE: Server-side analysis processes uploaded audio. Real-time calls use on-device analysis."
+    if demo_scenario:
+        warning_msg = f"DEMO MODE — SIMULATED RESULT ({demo_scenario.upper()}). Does not reflect live cryptographic or neural guarantee."
+        result.is_mock = True
+
     response_data = AudioAnalysisResponse(
         analysis_id=db_analysis.id,
         status=db_analysis.status,
@@ -110,8 +115,9 @@ async def analyze_audio_file(
         model_version=db_analysis.model_version,
         is_mock=db_analysis.is_mock,
         created_at=db_analysis.created_at,
-        warning="PRIVACY NOTICE: Server-side analysis processes uploaded audio. Real-time calls use on-device analysis.",
+        warning=warning_msg,
     )
+
 
     return ApiResponse.ok(data=response_data, request_id=req_id)
 
