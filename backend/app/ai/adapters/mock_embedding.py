@@ -37,3 +37,13 @@ class MockSpeakerEmbeddingService(SpeakerEmbeddingService):
             model_version=self.model_version,
             is_mock=True,
         )
+
+    def get_status(self):
+        return {
+            "available": True,
+            "model_name": "VoxShield-MockSpeakerEmbedding",
+            "model_version": self.model_version,
+            "device": "cpu",
+            "engine_type": "MOCK_DEMO_MODEL",
+        }
+

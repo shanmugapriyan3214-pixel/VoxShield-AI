@@ -1,7 +1,8 @@
 """VoxShield AI — Audio Analysis & Comparison Endpoints."""
 
 import hashlib
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from typing import Optional
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +30,10 @@ ALLOWED_EXTENSIONS = {"wav", "mp3", "m4a", "ogg", "flac"}
 )
 async def analyze_audio_file(
     file: UploadFile = File(...),
+    demo_scenario: Optional[str] = Query(
+        None,
+        description="Optional simulation scenario for demo: 'normal' | 'suspicious' | 'voice_clone'"
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     req_id: str = Depends(get_request_id),
@@ -54,6 +59,27 @@ async def analyze_audio_file(
 
     # Run AI pipeline
     result = await ai_pipeline.analyze_full(contents)
+
+    # Apply demo scenario overrides if requested
+    if demo_scenario == "voice_clone":
+        result.classification = "LIKELY_AI_GENERATED"
+        result.ai_probability = 0.96
+        result.human_probability = 0.04
+        result.speaker_match_score = 0.28
+        result.liveness_score = 0.22
+    elif demo_scenario == "suspicious":
+        result.classification = "SUSPICIOUS"
+        result.ai_probability = 0.52
+        result.human_probability = 0.48
+        result.speaker_match_score = 0.65
+        result.liveness_score = 0.58
+    elif demo_scenario == "normal":
+        result.classification = "LIKELY_HUMAN"
+        result.ai_probability = 0.03
+        result.human_probability = 0.97
+        result.speaker_match_score = 0.94
+        result.liveness_score = 0.92
+
 
     # Persist analysis job metadata
     db_analysis = VoiceAnalysis(

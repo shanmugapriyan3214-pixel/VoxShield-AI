@@ -1,6 +1,4 @@
-"""VoxShield AI — Call Lifecycle & Telemetry Endpoints."""
-
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,9 +9,17 @@ from app.schemas.call import (
     CallResponse,
     CallSecurityEventCreate,
     CallSecurityEventResponse,
+    ChallengeIssueRequest,
+    ChallengeResponse,
+    ChallengeVerificationResponse,
+    ChallengeVerifyRequest,
+    SecurityTelemetryReportRequest,
+    SecurityTelemetryResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services.call_service import CallService
+from app.services.challenge_service import challenge_service
+
 
 router = APIRouter(prefix="/calls", tags=["Calls & WebRTC Lifecycle"])
 
@@ -164,3 +170,118 @@ async def list_security_events(
         data=[CallSecurityEventResponse.model_validate(e) for e in events],
         request_id=req_id,
     )
+
+
+@router.post(
+    "/{call_id}/security-analysis",
+    response_model=ApiResponse[SecurityTelemetryResponse],
+    summary="Submit client-side real-time voice telemetry for multi-signal threat evaluation (ZERO AUDIO TRANSFERRED)",
+)
+async def submit_security_analysis(
+    call_id: str,
+    data: SecurityTelemetryReportRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    req_id: str = Depends(get_request_id),
+) -> ApiResponse[SecurityTelemetryResponse]:
+    result = await CallService.process_security_analysis(db, call_id, current_user.id, data)
+    return ApiResponse.ok(data=result, request_id=req_id)
+
+
+@router.post(
+    "/{call_id}/challenge",
+    response_model=ApiResponse[ChallengeResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="Issue an interactive acoustic passphrase verification challenge for caller/callee",
+)
+async def issue_verification_challenge(
+    call_id: str,
+    data: ChallengeIssueRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    req_id: str = Depends(get_request_id),
+) -> ApiResponse[ChallengeResponse]:
+    call = await CallService.get_call(db, call_id, current_user.id)
+    target_user_id = data.target_user_id or (call.receiver_id if current_user.id == call.caller_id else call.caller_id)
+    challenge = challenge_service.issue_challenge(
+        call_id=call_id,
+        issued_by_user_id=current_user.id,
+        issued_to_user_id=target_user_id,
+        timeout_seconds=data.timeout_seconds,
+    )
+    return ApiResponse.ok(
+        data=ChallengeResponse(
+            challenge_id=challenge.challenge_id,
+            call_id=challenge.call_id,
+            passphrase=challenge.passphrase,
+            prompt=challenge.prompt,
+            expires_at=challenge.expires_at,
+            status=challenge.status,
+            created_at=challenge.created_at,
+        ),
+        request_id=req_id,
+    )
+
+
+@router.post(
+    "/{call_id}/challenge/verify",
+    response_model=ApiResponse[ChallengeVerificationResponse],
+    summary="Verify spoken response to active acoustic challenge",
+)
+async def verify_challenge_response(
+    call_id: str,
+    data: ChallengeVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    req_id: str = Depends(get_request_id),
+) -> ApiResponse[ChallengeVerificationResponse]:
+    # Ensure participant authorized
+    await CallService.get_call(db, call_id, current_user.id)
+    result = challenge_service.verify_challenge(
+        call_id=call_id,
+        challenge_id=data.challenge_id,
+        spoken_phrase=data.spoken_phrase,
+        liveness_score=data.liveness_score,
+    )
+    return ApiResponse.ok(
+        data=ChallengeVerificationResponse(
+            challenge_id=result.challenge_id,
+            call_id=result.call_id,
+            status=result.status,
+            verified=result.verified,
+            details=result.details,
+            threat_score_impact=result.threat_score_impact,
+            timestamp=result.timestamp,
+        ),
+        request_id=req_id,
+    )
+
+
+@router.get(
+    "/{call_id}/challenge",
+    response_model=ApiResponse[Optional[ChallengeResponse]],
+    summary="Get active verification challenge for call session",
+)
+async def get_active_challenge(
+    call_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    req_id: str = Depends(get_request_id),
+) -> ApiResponse[Optional[ChallengeResponse]]:
+    await CallService.get_call(db, call_id, current_user.id)
+    challenge = challenge_service.get_active_challenge(call_id)
+    if not challenge:
+        return ApiResponse.ok(data=None, request_id=req_id)
+    return ApiResponse.ok(
+        data=ChallengeResponse(
+            challenge_id=challenge.challenge_id,
+            call_id=challenge.call_id,
+            passphrase=challenge.passphrase,
+            prompt=challenge.prompt,
+            expires_at=challenge.expires_at,
+            status=challenge.status,
+            created_at=challenge.created_at,
+        ),
+        request_id=req_id,
+    )
+

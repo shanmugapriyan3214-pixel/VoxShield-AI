@@ -7,7 +7,7 @@
 [![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://sqlalchemy.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://docker.com)
-[![Tests](https://img.shields.io/badge/Pytest-38%20Passed%20%7C%20100%25-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Pytest-56%20Passed%20%7C%20100%25-brightgreen.svg)]()
 
 ---
 
@@ -16,11 +16,16 @@
 
 ### Key Capabilities:
 - **Zero-Server-Audio Privacy Core**: Raw voice media is strictly peer-to-peer and encrypted with **DTLS-SRTP**. The server **NEVER** intercepts, stores, or processes real-time voice call audio.
-- **Client-Side AI Inference Telemetry**: Real-time detection runs on edge devices. Clients transmit only lightweight mathematical telemetry (probabilities, classification tags, timestamps).
-- **Multi-Signal Threat Engine**: Real-time evaluation fusing deepfake probabilities, speaker identity distance, liveness metrics, and trusted contact verification into a normalized **0–100 Threat Score**.
-- **Voice Fingerprinting & Trusted Contacts**: Privacy-preserving speaker representation management and contact relationship tracking to prevent targeted family and CEO impersonation.
+- **Client-Side AI Inference & Streaming Telemetry**: Edge sliding-window analyzer (1.5-second windows) computes synthetic probability, speaker match, and liveness locally. Clients transmit compact JSON telemetry (`POST /calls/{id}/security-analysis`).
+- **Acoustic Feature Extraction Engine**: Pure Python/NumPy DSP pipeline extracting 64-channel Log-Mel spectrograms, 13/24 MFCCs, spectral centroid, spectral flatness, spectral rolloff, zero-crossing rate, and RMS energy.
+- **Pluggable Deepfake Detection & Model Labeling**: Dual-mode engine supporting real local acoustic classifiers (`REAL_LOCAL_MODEL`) with ONNX neural runtime, and deterministic mock generators (`MOCK_DEMO_MODEL`).
+- **Speaker Verification & Biometric Protection**: 192-dimensional unit-sphere normalized speaker embeddings with cosine similarity comparison. Raw biometric vectors are strictly protected and never exposed publicly.
+- **Acoustic Liveness & Replay Detection**: Real acoustic impulse response and spectral dynamics analysis distinguishing live human vocalizations from loudspeaker re-recording and zero-shot neural vocoder synthesis.
+- **Multi-Signal Threat Fusion**: 0–100 threat score engine fusing AI probability (0.45), speaker mismatch (0.30), and liveness failure (0.25) with progressive mitigations (`CONTINUE_NORMAL`, `DISPLAY_ADVISORY`, `REQUIRE_VERIFICATION`, `RECOMMEND_TERMINATION`).
+- **Dynamic Acoustic Passphrase Challenges**: Real-time 3-word challenge-response protocol (e.g. `"Falcon Echo Crimson"`) with threat mitigation bonuses for identity verification.
 - **Canonical Incident Ledger & Blockchain Anchoring**: Automated generation of `RFC 8785` canonical incident records, SHA-256 evidence digests, and immutable distributed ledger anchoring (Mock or EVM-compatible networks).
 - **WebRTC Signaling Gateway**: Ephemeral WebSocket relay for SDP offer/answer and ICE candidate negotiation.
+
 
 ---
 

@@ -6,6 +6,8 @@ from typing import List, Optional
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.config import ai_settings
+from app.ai.fusion.threat_fusion import threat_fusion_engine
 from app.core.exceptions import (
     ConflictException,
     PermissionDeniedException,
@@ -16,7 +18,14 @@ from app.core.security import utc_now
 from app.db.models.call import Call, CallParticipant, CallSecurityEvent
 from app.db.models.threat import ThreatEvent
 from app.db.models.user import User
-from app.schemas.call import CallInitiateRequest, CallSecurityEventCreate
+from app.schemas.call import (
+    CallInitiateRequest,
+    CallSecurityEventCreate,
+    SecurityTelemetryReportRequest,
+    SecurityTelemetryResponse,
+)
+from app.services.challenge_service import challenge_service
+
 
 
 class CallService:
@@ -198,3 +207,103 @@ class CallService:
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())
+
+    @staticmethod
+    async def process_security_analysis(
+        db: AsyncSession,
+        call_id: str,
+        user_id: str,
+        data: SecurityTelemetryReportRequest,
+    ) -> SecurityTelemetryResponse:
+        call = await CallService.get_call(db, call_id, user_id)
+
+        # 1. Multi-signal threat fusion
+        assessment = threat_fusion_engine.evaluate(
+            ai_probability=data.ai_generated_probability,
+            speaker_match_score=data.speaker_match_probability,
+            liveness_score=data.liveness_probability,
+            is_claimed_trusted_contact=(data.speaker_match_probability is not None),
+            anomaly_flags=data.detected_artifacts,
+        )
+
+        final_threat_score = assessment.threat_score
+        severity = assessment.severity
+        recommended_action = assessment.recommended_action
+        recommendation = assessment.recommendation
+        indicators = list(assessment.indicators)
+
+        # Check if an active challenge modifies threat score
+        active_challenge = challenge_service.get_active_challenge(call_id)
+        if active_challenge and active_challenge.status == "PASSED":
+            final_threat_score = max(0.0, final_threat_score - 30.0)
+            if final_threat_score < 25.0:
+                severity = "LOW"
+                recommended_action = "CONTINUE_NORMAL"
+            elif final_threat_score < 50.0:
+                severity = "MEDIUM"
+                recommended_action = "DISPLAY_ADVISORY"
+            indicators.append("Trust challenge passed: Threat score mitigated")
+
+        event_id = None
+        call_terminated = False
+
+        # Record security event if elevated threat or artifacts detected
+        if final_threat_score >= 50.0 or data.detected_artifacts:
+            event_type = "AI_VOICE_DETECTED" if severity == "CRITICAL" else "SUSPICIOUS_VOICE"
+            meta = {
+                "window_index": data.window_index,
+                "window_duration_ms": data.window_duration_ms,
+                "client_timestamp_ms": data.client_timestamp_ms,
+                "recommended_action": recommended_action,
+                "detected_artifacts": data.detected_artifacts,
+            }
+            meta_json = json.dumps(meta)
+
+            sec_event = CallSecurityEvent(
+                call_id=call.id,
+                reported_by_user_id=user_id,
+                event_type=event_type,
+                severity=severity,
+                threat_score=final_threat_score,
+                ai_probability=data.ai_generated_probability,
+                speaker_match_score=data.speaker_match_probability,
+                liveness_score=data.liveness_probability,
+                metadata_json=meta_json,
+            )
+            db.add(sec_event)
+
+            threat_ev = ThreatEvent(
+                user_id=user_id,
+                call_id=call.id,
+                event_type=event_type,
+                severity=severity,
+                threat_score=final_threat_score,
+                ai_probability=data.ai_generated_probability,
+                speaker_match_score=data.speaker_match_probability,
+                liveness_score=data.liveness_probability,
+                metadata_json=meta_json,
+            )
+            db.add(threat_ev)
+            await db.flush()
+            event_id = sec_event.id
+
+        # Auto-termination if configured and severity is CRITICAL
+        if ai_settings.AUTO_TERMINATE_CRITICAL and severity == "CRITICAL" and call.status == "ACCEPTED":
+            call.status = "ENDED"
+            call.ended_at = utc_now()
+            call.termination_reason = "AUTO_TERMINATED_CRITICAL_VOICE_CLONE"
+            call_terminated = True
+
+        await db.commit()
+
+        return SecurityTelemetryResponse(
+            threat_score=final_threat_score,
+            severity=severity,
+            recommended_action=recommended_action,
+            recommendation=recommendation,
+            indicators=indicators,
+            call_terminated=call_terminated,
+            event_id=event_id,
+            timestamp=utc_now(),
+        )
+

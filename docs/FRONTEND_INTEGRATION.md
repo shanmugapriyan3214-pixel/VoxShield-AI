@@ -145,35 +145,84 @@ signalingSocket.onmessage = async (event) => {
 
 ## 4. Real-Time In-Call Security Telemetry Reporting
 
-When the local neural inference detects an anomaly or clones:
+Every 1.5 seconds, the client-side sliding window analyzer emits telemetry to the backend:
 ```typescript
-async function reportInCallAnomaly(callId: string, inferenceResult: InferenceData) {
-  // Post telemetry metadata ONLY
-  await apiClient.post(`/api/v1/calls/${callId}/security-events`, {
-    event_type: inferenceResult.isAiClone ? "AI_VOICE_DETECTED" : "VOICE_ANOMALY",
-    severity: inferenceResult.severity, // "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
-    threat_score: inferenceResult.threatScore, // 0.0 - 100.0
-    ai_probability: inferenceResult.aiProbability, // 0.0 - 1.0
-    speaker_match_score: inferenceResult.speakerMatch,
-    liveness_score: inferenceResult.livenessScore,
-    metadata: {
-      client_platform: "web",
-      detected_cue: inferenceResult.artifactName,
-    },
+async function sendTelemetryFrame(callId: string, windowData: SlidingWindowResult) {
+  // Post compact security telemetry (ZERO audio bytes transferred)
+  const response = await apiClient.post(`/api/v1/calls/${callId}/security-analysis`, {
+    ai_generated_probability: windowData.aiProbability, // 0.0 - 1.0
+    speaker_match_probability: windowData.speakerMatch, // 0.0 - 1.0
+    liveness_probability: windowData.livenessScore,     // 0.0 - 1.0
+    window_duration_ms: 1500,
+    window_index: windowData.index,
+    detected_artifacts: windowData.detectedArtifacts,   // e.g. ["vocoder_phase_discontinuity"]
   });
+
+  const { recommended_action, threat_score, severity, call_terminated } = response.data.data;
+
+  // React progressively based on server instruction
+  switch (recommended_action) {
+    case "CONTINUE_NORMAL":
+      updateHUDStatus("SECURE", threat_score);
+      break;
+    case "DISPLAY_ADVISORY":
+      showAdvisoryBanner("Acoustic anomalies observed. Exercise caution.");
+      break;
+    case "REQUIRE_VERIFICATION":
+      promptAcousticChallengeModal(callId);
+      break;
+    case "RECOMMEND_TERMINATION":
+      showCriticalWarningModal("AI Voice Clone Impersonation Detected. Disconnect recommended!");
+      if (call_terminated) {
+        hangupPeerConnection();
+      }
+      break;
+  }
 }
 ```
 
 ---
 
-## 5. UI / UX Design Specifications for Frontend Clients
+## 5. Acoustic Passphrase Verification Challenge Flow
+
+When elevated threat occurs or a participant suspects impersonation:
+```typescript
+// 1. Issue challenge
+async function triggerChallenge(callId: string) {
+  const res = await apiClient.post(`/api/v1/calls/${callId}/challenge`, {
+    timeout_seconds: 45
+  });
+  const { challenge_id, passphrase, prompt } = res.data.data;
+  displayChallengePrompt(prompt); // "Please repeat clearly: 'Falcon Echo Crimson'"
+  return challenge_id;
+}
+
+// 2. Submit spoken response
+async function submitChallengeResponse(callId: string, challengeId: string, spokenText: string, liveness: number) {
+  const res = await apiClient.post(`/api/v1/calls/${callId}/challenge/verify`, {
+    challenge_id: challengeId,
+    spoken_phrase: spokenText,
+    liveness_score: liveness
+  });
+  const { status, verified, threat_score_impact } = res.data.data;
+  if (verified) {
+    showToast("Identity verified! Call threat score reduced.");
+  } else {
+    showToast("Verification failed. Proceed with extreme caution.", "danger");
+  }
+}
+```
+
+---
+
+## 6. UI / UX Design Specifications for Frontend Clients
 
 1. **Active Call Screen (HUD)**:
    - **Shield Status Indicator**:
-     - Green Shield (`LOW` threat: 0–29): "Voice Authenticated"
-     - Amber Shield (`MEDIUM` threat: 30–59): "Caution: Acoustic Discontinuity"
-     - Red Flashing Shield (`HIGH` threat: 60–84): "Warning: AI Voice Clone Suspected"
-     - Crimson Pulsing Modal (`CRITICAL` threat: 85–100): "CRITICAL: Impersonation Attack Detected — Disconnect Recommended"
+     - Green Shield (`LOW` threat: 0–24.9): "Voice Authenticated"
+     - Amber Shield (`MEDIUM` threat: 25.0–49.9): "Advisory: Acoustic Jitter Detected"
+     - Orange Shield (`HIGH` threat: 50.0–74.9): "Suspicious: Voiceprint Mismatch — Verification Recommended"
+     - Crimson Pulsing Modal (`CRITICAL` threat: 75.0–100.0): "CRITICAL THREAT: AI Voice Clone Impersonation — Hang Up Immediately"
 2. **Dashboard & Threat History**:
    - Time-series chart rendering daily threat counts from `GET /api/v1/threats/timeline`.
    - Severity breakdown pie chart using `GET /api/v1/threats/summary`.
@@ -181,3 +230,4 @@ async function reportInCallAnomaly(callId: string, inferenceResult: InferenceDat
    - Displays Canonical SHA-256 Hash.
    - Verification status badge (`VERIFIED`, `TAMPERED`, `UNANCHORED`).
    - Clickable link to Etherscan / Polygonscan block explorer based on `transaction_hash`.
+

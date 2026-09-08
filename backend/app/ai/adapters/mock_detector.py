@@ -56,3 +56,13 @@ class MockDeepfakeDetector(DeepfakeDetector):
             detected_artifacts=artifacts,
             timestamp=datetime.now(timezone.utc),
         )
+
+    def get_status(self):
+        return {
+            "available": True,
+            "model_name": "VoxShield-MockDeepfakeDetector",
+            "model_version": self.model_version,
+            "device": "cpu",
+            "engine_type": "MOCK_DEMO_MODEL",
+        }
+

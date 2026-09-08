@@ -6,6 +6,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import (
+    ai,
     analysis,
     auth,
     calls,
@@ -90,6 +91,7 @@ def create_application() -> FastAPI:
     app.include_router(voices.router, prefix=settings.API_V1_STR)
     app.include_router(trusted_voices.router, prefix=settings.API_V1_STR)
     app.include_router(analysis.router, prefix=settings.API_V1_STR)
+    app.include_router(ai.router, prefix=settings.API_V1_STR)
     app.include_router(calls.router, prefix=settings.API_V1_STR)
     app.include_router(signaling.router, prefix=settings.API_V1_STR)
     app.include_router(threats.router, prefix=settings.API_V1_STR)

@@ -187,10 +187,11 @@ Register trusted family, friends, or verified contacts.
 
 ### 6.1 Audio File Analysis (Optional Offline Mode)
 - **Method & Path**: `POST /api/v1/analysis/audio`
+- **Query Params**: `?demo_scenario=normal|suspicious|voice_clone` (Optional simulation override for hackathon demos)
 - **Auth**: Bearer Token
 - **Content-Type**: `multipart/form-data`
-- **Form Fields**: `file` (WAV, MP3, M4A)
-- **Response (`202 Accepted` / `200 OK`)**:
+- **Form Fields**: `file` (WAV, MP3, M4A, FLAC, OGG)
+- **Response (`200 OK`)**:
   ```json
   {
     "success": true,
@@ -200,11 +201,11 @@ Register trusted family, friends, or verified contacts.
       "classification": "LIKELY_AI_GENERATED",
       "ai_probability": 0.94,
       "human_probability": 0.06,
-      "speaker_match_score": 0.89,
-      "liveness_score": 0.42,
-      "model_version": "mock-voxguard-v1.0-demo",
-      "is_mock": true,
-      "warning": "Server-side analysis processes uploaded audio. For call privacy, use client-side real-time analysis."
+      "speaker_match_score": 0.28,
+      "liveness_score": 0.22,
+      "model_version": "local-neural-v2.0",
+      "is_mock": false,
+      "warning": "PRIVACY NOTICE: Server-side analysis processes uploaded audio. Real-time calls use on-device analysis."
     }
   }
   ```
@@ -214,8 +215,8 @@ Register trusted family, friends, or verified contacts.
 - **Request Body**:
   ```json
   {
-    "reference_profile_id": "profile-uuid",
-    "suspect_analysis_id": "analysis-uuid"
+    "reference_embedding": [0.05, -0.12, ...],
+    "suspect_embedding": [0.04, -0.11, ...]
   }
   ```
 - **Response (`200 OK`)**:
@@ -223,11 +224,11 @@ Register trusted family, friends, or verified contacts.
   {
     "success": true,
     "data": {
-      "match_score": 0.87,
-      "confidence": 0.92,
+      "speaker_match_score": 0.98,
+      "confidence": 0.93,
       "is_match": true,
       "threshold_used": 0.75,
-      "model_version": "mock-speaker-comp-v1"
+      "model_version": "cosine-v1.0"
     }
   }
   ```
@@ -242,18 +243,47 @@ Register trusted family, friends, or verified contacts.
 - `POST /api/v1/calls/{id}/accept` — Accept incoming call (`ACCEPTED`).
 - `POST /api/v1/calls/{id}/reject` — Reject incoming call (`REJECTED`).
 - `POST /api/v1/calls/{id}/end` — Terminate call (`ENDED`).
-- `POST /api/v1/calls/{id}/security-events` — Ingest client-side AI detection alert:
+
+### 7.1 Live Security Telemetry (Zero Server Audio)
+- **Method & Path**: `POST /api/v1/calls/{id}/security-analysis`
+- **Purpose**: Receive on-device edge AI telemetry frames every 1.5 seconds. Unencrypted live audio NEVER touches the backend server.
+- **Request Body**:
   ```json
   {
-    "event_type": "AI_VOICE_DETECTED",
-    "threat_score": 92.0,
-    "ai_probability": 0.94,
-    "speaker_match_score": 0.88,
-    "liveness_score": 0.41,
-    "metadata": { "anomaly_band": "high_spectral_variance" }
+    "ai_generated_probability": 0.94,
+    "speaker_match_probability": 0.32,
+    "liveness_probability": 0.28,
+    "window_duration_ms": 1500,
+    "window_index": 4,
+    "detected_artifacts": ["vocoder_phase_discontinuity"]
   }
   ```
-- `GET /api/v1/calls/{id}/security-events` — List security events for a specific call.
+- **Response (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "threat_score": 88.5,
+      "severity": "CRITICAL",
+      "recommended_action": "RECOMMEND_TERMINATION",
+      "recommendation": "CRITICAL THREAT: High-confidence voice clone impersonation attack. Hang up immediately.",
+      "indicators": ["High synthetic speech probability (94.0%)", "Voice embedding mismatch (32.0% similarity)"],
+      "call_terminated": false,
+      "event_id": "sec-event-uuid",
+      "timestamp": "2026-09-08T15:45:00Z"
+    }
+  }
+  ```
+
+### 7.2 Trust Verification Challenges
+- `POST /api/v1/calls/{id}/challenge` — Issue an interactive acoustic passphrase challenge (e.g. returns `"Falcon Echo Crimson"`).
+- `POST /api/v1/calls/{id}/challenge/verify` — Verify the spoken response phrase and liveness score (`PASSED` | `FAILED`).
+- `GET /api/v1/calls/{id}/challenge` — Fetch active challenge status and remaining duration.
+
+### 7.3 Legacy Security Events Ingestion
+- `POST /api/v1/calls/{id}/security-events` — Ingest client-side AI detection alert.
+- `GET /api/v1/calls/{id}/security-events` — List all recorded security telemetry events for call.
+
 
 ---
 
@@ -314,3 +344,70 @@ Register trusted family, friends, or verified contacts.
 
 - `GET /health` — Simple liveness probe (`{"status": "ok"}`).
 - `GET /api/v1/health` — Deep readiness probe checking PostgreSQL, Redis, and AI service readiness.
+
+---
+
+## 13. AI Subsystem Status API (`/api/v1/ai/status`)
+
+- **Method & Path**: `GET /api/v1/ai/status`
+- **Auth**: Public or Bearer Token
+- **Purpose**: Exposes non-sensitive operational telemetry, engine availability, and active models.
+- **Privacy Guarantee**: Never exposes model weights, local model file paths, or private embeddings.
+- **Response (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "status": "OPERATIONAL",
+      "mode": "mock",
+      "device": "cpu",
+      "streaming_window": {
+        "window_duration_sec": 1.5,
+        "hop_duration_sec": 1.0,
+        "sample_rate": 16000
+      },
+      "components": {
+        "deepfake_detector": {
+          "available": true,
+          "model_name": "VoxShield-AcousticClassifier-v2",
+          "model_version": "local-neural-v2.0",
+          "device": "cpu",
+          "engine_type": "REAL_LOCAL_MODEL"
+        },
+        "speaker_embedding": {
+          "available": true,
+          "model_name": "VoxShield-SpeakerEmbedding-Local",
+          "model_version": "local-ecapa-v1.0",
+          "device": "cpu",
+          "engine_type": "REAL_LOCAL_MODEL"
+        },
+        "speaker_comparison": {
+          "available": true,
+          "model_name": "VoxShield-SpeakerCosineSimilarity",
+          "model_version": "cosine-v1.0",
+          "device": "cpu",
+          "engine_type": "REAL_LOCAL_MODEL"
+        },
+        "liveness_detector": {
+          "available": true,
+          "model_name": "VoxShield-AcousticLiveness-Local",
+          "model_version": "liveness-dsp-v1.0",
+          "device": "cpu",
+          "engine_type": "REAL_LOCAL_MODEL"
+        },
+        "threat_fusion": {
+          "available": true,
+          "model_name": "VoxShield-ThreatFusion-v2",
+          "model_version": "fusion-v2.0",
+          "device": "cpu",
+          "engine_type": "REAL_LOCAL_MODEL"
+        }
+      },
+      "privacy_policy": {
+        "zero_server_audio": "Strictly Enforced: Voice streams are analyzed client-side; raw audio is never stored or transmitted to server.",
+        "biometric_protection": "Voice embeddings are treated as high-security biometric credentials and never returned via public APIs."
+      }
+    }
+  }
+  ```
+

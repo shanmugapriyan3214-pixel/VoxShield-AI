@@ -121,3 +121,31 @@ def auth_headers_bob(test_user_bob: User) -> Dict[str, str]:
         extra_claims={"username": test_user_bob.username, "email": test_user_bob.email},
     )
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_user_charlie(db_session: AsyncSession) -> User:
+    """Create third test user Charlie (eavesdropper / external party)."""
+    user = User(
+        email="charlie@voxshield.io",
+        username="charlie",
+        display_name="Charlie Davis",
+        password_hash=get_password_hash("StrongP@ssw0rd789!"),
+        is_verified=True,
+        is_active=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def auth_headers_charlie(test_user_charlie: User) -> Dict[str, str]:
+    """Return valid Authorization Bearer header for Charlie."""
+    token = create_access_token(
+        subject=test_user_charlie.id,
+        extra_claims={"username": test_user_charlie.username, "email": test_user_charlie.email},
+    )
+    return {"Authorization": f"Bearer {token}"}
+

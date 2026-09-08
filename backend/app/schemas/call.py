@@ -63,3 +63,57 @@ class CallSecurityEventResponse(BaseModel):
         elif isinstance(v, dict):
             return v
         return {}
+
+
+class SecurityTelemetryReportRequest(BaseModel):
+    """Real-time security telemetry submitted by local client inference engine."""
+    ai_generated_probability: float = Field(..., ge=0.0, le=1.0)
+    speaker_match_probability: Optional[float] = Field(None, ge=0.0, le=1.0)
+    liveness_probability: Optional[float] = Field(None, ge=0.0, le=1.0)
+    window_duration_ms: int = Field(default=1500, ge=100)
+    window_index: Optional[int] = None
+    client_timestamp_ms: Optional[int] = None
+    detected_artifacts: List[str] = Field(default_factory=list)
+
+
+class SecurityTelemetryResponse(BaseModel):
+    threat_score: float = Field(..., ge=0.0, le=100.0)
+    severity: str
+    recommended_action: str
+    recommendation: str
+    indicators: List[str] = Field(default_factory=list)
+    call_terminated: bool = False
+    event_id: Optional[str] = None
+    timestamp: datetime
+
+
+class ChallengeIssueRequest(BaseModel):
+    target_user_id: Optional[str] = None
+    timeout_seconds: Optional[int] = Field(None, ge=10, le=300)
+
+
+class ChallengeResponse(BaseModel):
+    challenge_id: str
+    call_id: str
+    passphrase: str
+    prompt: str
+    expires_at: datetime
+    status: str
+    created_at: datetime
+
+
+class ChallengeVerifyRequest(BaseModel):
+    challenge_id: str
+    spoken_phrase: str
+    liveness_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+
+
+class ChallengeVerificationResponse(BaseModel):
+    challenge_id: str
+    call_id: str
+    status: str
+    verified: bool
+    details: str
+    threat_score_impact: float = 0.0
+    timestamp: datetime
+
