@@ -4,10 +4,11 @@
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B%20%7C%203.13-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com)
-[![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://sqlalchemy.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://docker.com)
-[![Tests](https://img.shields.io/badge/Pytest-69%20Passed%20%7C%20100%25-brightgreen.svg)]()
+[![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6.svg)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF.svg)](https://vitejs.dev)
+[![Backend Tests](https://img.shields.io/badge/Backend%20Pytest-69%2F69%20Passed-brightgreen.svg)]()
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Vitest-5%2F5%20Passed-brightgreen.svg)]()
 
 ---
 
@@ -260,12 +261,14 @@ Once started, explore the complete interactive OpenAPI schema at:
 
 For detailed architectural specifications and client integration guides, refer to the `docs/` directory:
 - [System Architecture](file:///docs/ARCHITECTURE.md)
+- [Frontend Architecture (Phase 3)](file:///docs/FRONTEND_ARCHITECTURE.md)
+- [Frontend Privacy Audit (Zero-Server-Audio)](file:///docs/FRONTEND_PRIVACY_AUDIT.md)
+- [WebRTC Architecture Specification](file:///docs/WEBRTC_ARCHITECTURE.md)
+- [Hackathon Demonstration & Evaluation Guide](file:///docs/DEMO_GUIDE.md)
+- [Frontend-Backend API Contract](file:///docs/FRONTEND_BACKEND_CONTRACT.md)
 - [API Specification](file:///docs/API_SPECIFICATION.md)
 - [Database Schema & ERD](file:///docs/DATABASE_DESIGN.md)
 - [Security Model & Threat Vectors](file:///docs/SECURITY_MODEL.md)
 - [AI Intelligence Pipeline & Threat Engine](file:///docs/AI_PIPELINE.md)
-- [WebRTC Real-Time Call Architecture](file:///docs/WEBRTC_DESIGN.md)
 - [Blockchain Evidence & Ledger Anchoring](file:///docs/BLOCKCHAIN_DESIGN.md)
-- [Implementation Roadmap](file:///docs/IMPLEMENTATION_ROADMAP.md)
 - [API Usage Examples (curl & JSON)](file:///docs/API_EXAMPLES.md)
-- [Frontend & Mobile Integration Contract](file:///docs/FRONTEND_INTEGRATION.md)

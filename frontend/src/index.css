@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cyber-bg text-cyber-text font-sans selection:bg-cyber-cyan selection:text-cyber-bg overflow-x-hidden;
+  }
+
+  /* Custom scrollbar for cybersecurity theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B0F17;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1F2E45;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #06B6D4;
+  }
+}
+
+/* Pulse animation for active call shield */
+@keyframes shield-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.7));
+  }
+}
+
+.animate-shield-pulse {
+  animation: shield-pulse 2.5s infinite ease-in-out;
+}
+
+/* Threat alert pulse for crimson high threat */
+@keyframes threat-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
+  }
+}
+
+.animate-threat-pulse {
+  animation: threat-pulse 1.2s infinite ease-in-out;
+}
