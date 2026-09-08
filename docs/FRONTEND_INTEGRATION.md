@@ -10,6 +10,32 @@ This contract defines the client-side integration architecture for future **Web*
 > **Client Invariant**: Raw audio recorded from the user's microphone or received over peer-to-peer WebRTC **MUST NEVER** be transmitted to the VoxShield AI backend API. All real-time deepfake analysis occurs on the client endpoint. Only lightweight mathematical indicators (probabilities, scores, timestamps) are sent to the backend.
 
 ### 1.1 Edge Processing Pipeline
+```text
+DEVICE
+│
+├── Microphone
+│
+├── Local Audio Buffer
+│
+├── Deepfake Detector
+│
+├── Speaker Verification
+│
+├── Liveness Detection
+│
+└── Threat Fusion
+│
+│ SECURITY TELEMETRY ONLY
+▼
+VOXSHIELD BACKEND
+│
+├── Authentication
+├── Threat Engine
+├── Security Events
+├── Incidents
+└── Evidence Blockchain
+```
+
 ```
 [User Mic] ──► [AudioContext / AudioBuffer]
                      │

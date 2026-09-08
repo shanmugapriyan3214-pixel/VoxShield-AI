@@ -8,6 +8,32 @@ In conventional VoIP architectures, media relays or transcoding proxies inspect 
 - **Transport**: WebRTC media is encrypted using **DTLS-SRTP** directly between endpoints.
 - **Telemetry Only**: The backend receives only discrete, non-reconstructable mathematical indicators (e.g. classification probabilities, anomaly flag codes).
 
+```text
+DEVICE
+│
+├── Microphone
+│
+├── Local Audio Buffer
+│
+├── Deepfake Detector
+│
+├── Speaker Verification
+│
+├── Liveness Detection
+│
+└── Threat Fusion
+│
+│ SECURITY TELEMETRY ONLY
+▼
+VOXSHIELD BACKEND
+│
+├── Authentication
+├── Threat Engine
+├── Security Events
+├── Incidents
+└── Evidence Blockchain
+```
+
 ### 1.2 Defense in Depth
 Security controls are enforced across all layers:
 1. **Network**: TLS 1.3 for all HTTP/WebSocket traffic; DTLS-SRTP for peer-to-peer media.

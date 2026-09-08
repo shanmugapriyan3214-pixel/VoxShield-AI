@@ -12,6 +12,32 @@ The VoxShield AI intelligence layer is structured around modular, dependency-inj
 
 ## 2. Architecture & Pipeline Structure
 
+```text
+DEVICE
+│
+├── Microphone
+│
+├── Local Audio Buffer
+│
+├── Deepfake Detector
+│
+├── Speaker Verification
+│
+├── Liveness Detection
+│
+└── Threat Fusion
+│
+│ SECURITY TELEMETRY ONLY
+▼
+VOXSHIELD BACKEND
+│
+├── Authentication
+├── Threat Engine
+├── Security Events
+├── Incidents
+└── Evidence Blockchain
+```
+
 ```
                            ┌──────────────────────────────────────────────┐
                            │      On-Device Client Audio Buffer (16 kHz)  │
