@@ -362,7 +362,7 @@ export const IncidentDetail: React.FC = () => {
                   )}
                 </div>
                 <span className="text-xs font-mono text-slate-400">
-                  Network: {verificationResult.network}
+                  Ledger: {verificationResult.network.toUpperCase().includes('MOCK') ? 'MOCK BLOCKCHAIN LEDGER (Local Simulation)' : verificationResult.network}
                 </span>
               </div>
 
@@ -401,7 +401,7 @@ export const IncidentDetail: React.FC = () => {
               <div className="font-mono text-[11px] space-y-1">
                 <div>Tx Hash: {receipt.transaction_hash}</div>
                 <div>Block: #{receipt.block_number}</div>
-                <div>Network: {receipt.network}</div>
+                <div>Ledger: {receipt.network.toUpperCase().includes('MOCK') ? 'MOCK BLOCKCHAIN LEDGER (Local Simulation)' : receipt.network}</div>
               </div>
             </div>
           )}

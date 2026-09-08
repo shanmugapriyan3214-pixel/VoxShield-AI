@@ -41,26 +41,29 @@ export const AIStatus: React.FC = () => {
     fetchStatus();
   }, []);
 
-  const getEngineTypeBadge = (engineType: EngineType | string) => {
+  const getEngineTypeBadge = (engineType: EngineType | string, available: boolean) => {
     switch (engineType) {
       case 'REAL_PRETRAINED_MODEL':
         return {
-          label: 'REAL PRETRAINED MODEL',
+          label: 'MODEL WEIGHTS INSTALLED & EXECUTING',
           classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
           desc: 'PyTorch / ONNX neural network running real pre-trained weights',
+          isNeural: true,
         };
       case 'LOCAL_DSP_ANALYZER':
         return {
-          label: 'LOCAL DSP ANALYZER',
+          label: 'ADAPTER READY (DSP FALLBACK ACTIVE)',
           classes: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-          desc: 'Deterministic acoustic DSP feature extraction & spectral analysis',
+          desc: 'Pretrained adapter is ready. Model weights not installed; currently utilizing DSP acoustic feature extraction fallback.',
+          isNeural: false,
         };
       case 'MOCK_DEMO_MODEL':
       default:
         return {
           label: 'MOCK DEMO MODEL',
           classes: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-          desc: 'Simulated heuristic model for lightweight testing / demonstration',
+          desc: 'Simulated heuristic model for lightweight testing and evaluation demonstration.',
+          isNeural: false,
         };
     }
   };
@@ -157,7 +160,7 @@ export const AIStatus: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {Object.entries(statusData.models || {}).map(([key, model]) => {
-                const badge = getEngineTypeBadge(model.engine_type);
+                const badge = getEngineTypeBadge(model.engine_type, model.available);
                 return (
                   <div
                     key={key}

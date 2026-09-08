@@ -7,6 +7,7 @@ interface ThreatShieldProps {
   severity: ThreatSeverity;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  isDegraded?: boolean;
 }
 
 export const ThreatShield: React.FC<ThreatShieldProps> = ({
@@ -14,12 +15,17 @@ export const ThreatShield: React.FC<ThreatShieldProps> = ({
   severity,
   size = 'md',
   showLabel = true,
+  isDegraded = false,
 }) => {
   let colorClass = 'text-cyber-emerald border-cyber-emerald/40 bg-cyber-emerald/10 shadow-emerald-glow';
   let badgeText = 'PROTECTED';
   let Icon = ShieldCheck;
 
-  if (severity === 'MEDIUM') {
+  if (isDegraded) {
+    colorClass = 'text-cyber-amber border-cyber-amber/50 bg-cyber-amber/15 shadow-amber-glow animate-pulse';
+    badgeText = 'MONITORING DEGRADED';
+    Icon = Shield;
+  } else if (severity === 'MEDIUM') {
     colorClass = 'text-cyber-amber border-cyber-amber/40 bg-cyber-amber/10';
     badgeText = 'ADVISORY';
     Icon = Shield;

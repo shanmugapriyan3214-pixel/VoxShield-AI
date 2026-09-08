@@ -48,8 +48,8 @@ export const Dashboard: React.FC = () => {
         if (incData.status === 'fulfilled') setIncidents(incData.value);
         if (tvData.status === 'fulfilled') setTrustedVoices(tvData.value);
         if (aiData.status === 'fulfilled') setAiStatus(aiData.value);
-      } catch (err) {
-        console.error('Error fetching dashboard metrics:', err);
+      } catch {
+        // Handle gracefully without exposing sensitive error trace
       } finally {
         setLoading(false);
       }

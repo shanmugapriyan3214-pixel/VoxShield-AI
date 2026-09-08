@@ -59,6 +59,7 @@ export const CallScreen: React.FC = () => {
   const [liveness, setLiveness] = useState<number | null>(0.96);
   const [engineType, setEngineType] = useState<string>('LOCAL_DSP_ANALYZER');
   const [demoScenario, setDemoScenario] = useState<DemoScenario>('live');
+  const [isTelemetryDegraded, setIsTelemetryDegraded] = useState(false);
 
   // Timeline & Challenge
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
@@ -149,6 +150,7 @@ export const CallScreen: React.FC = () => {
         // 2. Initialize Client Stream Analyzer
         const analyzer = new ClientStreamAnalyzer(callId, {
           onTelemetryResult: (result: SecurityTelemetryResponse) => {
+            setIsTelemetryDegraded(false);
             setThreatScore(result.threat_score);
             setSeverity(result.severity);
 
@@ -160,6 +162,10 @@ export const CallScreen: React.FC = () => {
               logEvent('Security severance initiated: Call terminated by security engine', 'CRITICAL');
               handleEndCall();
             }
+          },
+          onError: () => {
+            setIsTelemetryDegraded(true);
+            logEvent('Security telemetry degraded: unable to connect to security analyzer', 'MEDIUM');
           },
         });
         analyzerRef.current = analyzer;
@@ -391,7 +397,7 @@ export const CallScreen: React.FC = () => {
 
             {/* Center Stage: Dynamic Security Shield */}
             <div className="flex flex-col items-center my-6 z-10">
-              <ThreatShield score={threatScore} severity={severity} size="lg" />
+              <ThreatShield score={threatScore} severity={severity} size="lg" isDegraded={isTelemetryDegraded} />
 
               <h2 className="text-xl font-bold text-cyber-text mt-4 tracking-wide">
                 {call ? `Peer ${call.receiver_id.substring(0, 8)}...` : 'Connecting Peer...'}
