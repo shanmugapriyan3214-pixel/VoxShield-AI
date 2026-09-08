@@ -39,10 +39,13 @@ export const App: React.FC = () => {
         <Route path="calls" element={<Calls />} />
         <Route path="calls/:callId" element={<CallScreen />} />
         <Route path="voices" element={<VoiceProfile />} />
+        <Route path="voice-profile" element={<VoiceProfile />} />
         <Route path="trusted-voices" element={<TrustedVoices />} />
         <Route path="events" element={<SecurityEvents />} />
+        <Route path="security-events" element={<SecurityEvents />} />
         <Route path="incidents" element={<Incidents />} />
         <Route path="incidents/:id" element={<IncidentDetail />} />
+        <Route path="incidents/:incidentId" element={<IncidentDetail />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="ai-status" element={<AIStatus />} />
         <Route path="settings" element={<Settings />} />

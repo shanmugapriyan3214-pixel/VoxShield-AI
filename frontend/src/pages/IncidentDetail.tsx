@@ -28,7 +28,8 @@ import {
 import { useToast } from '../components/common/Toast';
 
 export const IncidentDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id?: string; incidentId?: string }>();
+  const activeId = params.incidentId || params.id;
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -42,10 +43,10 @@ export const IncidentDetail: React.FC = () => {
   const [newStatus, setNewStatus] = useState<IncidentStatus>('OPEN');
 
   const fetchIncident = async () => {
-    if (!id) return;
+    if (!activeId) return;
     try {
       setIsLoading(true);
-      const res = await api.get<IncidentResponse>(`/incidents/${id}`);
+      const res = await api.get<IncidentResponse>(`/incidents/${activeId}`);
       setIncident(res);
       setNewStatus(res.status);
     } catch (err: any) {
@@ -57,13 +58,13 @@ export const IncidentDetail: React.FC = () => {
 
   useEffect(() => {
     fetchIncident();
-  }, [id]);
+  }, [activeId]);
 
   const handleAnchor = async () => {
-    if (!id) return;
+    if (!activeId) return;
     try {
       setIsAnchoring(true);
-      const res = await api.post<BlockchainReceipt>(`/incidents/${id}/anchor`);
+      const res = await api.post<BlockchainReceipt>(`/incidents/${activeId}/anchor`);
       setReceipt(res);
       showToast('Incident evidence digest successfully anchored to distributed ledger!', 'success');
       // Refresh incident state
@@ -76,10 +77,10 @@ export const IncidentDetail: React.FC = () => {
   };
 
   const handleVerify = async () => {
-    if (!id) return;
+    if (!activeId) return;
     try {
       setIsVerifying(true);
-      const res = await api.get<BlockchainVerificationResult>(`/incidents/${id}/verification`);
+      const res = await api.get<BlockchainVerificationResult>(`/incidents/${activeId}/verification`);
       setVerificationResult(res);
       if (res.is_valid && res.verification_status === 'VERIFIED') {
         showToast('Cryptographic integrity confirmed: proof matches on-chain record', 'success');
@@ -96,10 +97,10 @@ export const IncidentDetail: React.FC = () => {
   };
 
   const handleUpdateStatus = async (status: IncidentStatus) => {
-    if (!id) return;
+    if (!activeId) return;
     try {
       const payload: IncidentUpdate = { status };
-      const res = await api.patch<IncidentResponse>(`/incidents/${id}`, payload);
+      const res = await api.patch<IncidentResponse>(`/incidents/${activeId}`, payload);
       setIncident(res);
       setNewStatus(res.status);
       showToast(`Status updated to ${status}`, 'success');
