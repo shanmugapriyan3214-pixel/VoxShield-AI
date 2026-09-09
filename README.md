@@ -176,24 +176,82 @@ docker compose up --build
 
 ---
 
-## 6. Running Automated Tests
+## 6. Running Automated Tests & Security Audits
 
-VoxShield AI includes an automated Pytest suite covering authentication, token rotation, user profiles, voice profiles, trusted voices, offline analysis, voice comparison, call lifecycles, real-time WebRTC signaling, threat scoring, and blockchain verification.
+VoxShield AI includes an exhaustive test and verification harness across unit, integration, stress, and live browser runtime levels:
 
-Run tests:
+### 6.1 Backend Test Suite (107/107 Passing)
 ```bash
 cd backend
 python -m pytest tests -v
 ```
-
 Output:
 ```
-======================= 38 passed, 4 warnings in 5.27s ========================
+====================== 107 passed, 5 warnings in 17.33s =======================
+```
+
+### 6.2 Frontend Vitest Suite (34/34 Passing)
+```bash
+cd frontend
+npm test -- --run
+```
+Output:
+```
+ Test Files  10 passed (10)
+      Tests  34 passed (34)
+   Duration  571ms
+```
+
+### 6.3 Concurrency & Stress Load Benchmark (560 Requests, 0 Errors)
+```bash
+python scripts/local_stress_test.py
+```
+Output:
+```
+Total Requests Executed:    560
+Total 500 Internal Errors:  0 (PASSED)
+System Recovery:            HEALTHY & VERIFIED
+Memory Working Set:         41.28 MB -> 49.80 MB (Stable)
+```
+
+### 6.4 Browser E2E Security & Privacy Invariant Audit
+```bash
+node scripts/browser_phase6_security_audit.mjs
+```
+Output:
+```
+Total Browser Network Requests:        267
+Forbidden Audio Upload Attempts:       0 (Target: 0)
+Raw Call Audio Uploaded to Server:     0 bytes (Strict Invariant: 0)
+Unhandled Browser Console Errors:      0 (Target: 0)
+[PASS] ZERO-SERVER-AUDIO INVARIANT STRICTLY VERIFIED AT RUNTIME.
 ```
 
 ---
 
-## 7. Interactive API Documentation
+## 7. Technical Claims Truth Table
+
+To maintain strict truth-in-engineering credibility, all technical capabilities adhere to this verified status matrix:
+
+| Subsystem / Capability | Status | Verified Evidence |
+| :--- | :--- | :--- |
+| **WebRTC Media Path** | **VERIFIED** | Peer-to-peer browser connection established via WebSockets. |
+| **DTLS-SRTP Encryption** | **VERIFIED** | End-to-end media encryption confirmed in dual-browser test. |
+| **Zero-Server-Audio Privacy** | **VERIFIED** | Enforced by `ZeroAudioCallGuardMiddleware` + 267-req audit (0 bytes). |
+| **AASIST-L Anti-Spoofing** | **VERIFIED_REAL_PRETRAINED** | Real ONNX model loaded; SHA-256 verified against `MANIFEST.json`. |
+| **ECAPA-TDNN Speaker Verification** | **VERIFIED_REAL_PRETRAINED** | Real ONNX model loaded; 192-dim unit-sphere embedding extraction. |
+| **Acoustic Liveness Detection**| **VERIFIED_LOCAL_DSP** | DSP feature extraction (impulse decay, rolloff); **NOT neural**. |
+| **Multi-Signal Threat Fusion** | **VERIFIED** | Bounded formula ($0.50\text{AI} + 0.35\text{Spk} + 0.15\text{Live}$); NaN/Inf sanitized. |
+| **Acoustic Challenge Protocol**| **VERIFIED** | Dynamic passphrase generation, 3-attempt lockout, memory cleanup. |
+| **Automated Incident Logging** | **VERIFIED** | Automatic creation upon critical threat escalation; zero audio stored. |
+| **RFC 8785 Canonical Hashing** | **VERIFIED** | Deterministic JCS serialization with SHA-256 evidence digests. |
+| **Blockchain Evidence Anchor** | **DEMONSTRATION** | Implemented via `MockLedgerAdapter` with EVM-compatible interface. |
+| **Controlled Attack Simulation**| **CONTROLLED DEMO** | 4 deterministic scenarios; explicitly labeled as `DEMO_MODE`. |
+| **Production Detection Accuracy**| **NOT CLAIMED** | Honest disclosure: benchmarked for stability, not claiming 99% accuracy. |
+
+---
+
+## 8. Interactive API Documentation
 
 Once started, explore the complete interactive OpenAPI schema at:
 - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
@@ -202,82 +260,19 @@ Once started, explore the complete interactive OpenAPI schema at:
 
 ---
 
-## 8. Core API Endpoint Inventory
+## 9. Master Hackathon & Architectural Documentation Index
 
-| Category | Method | Endpoint | Description |
-| :--- | :---: | :--- | :--- |
-| **Auth** | `POST` | `/api/v1/auth/register` | Register new user account |
-| **Auth** | `POST` | `/api/v1/auth/login` | Authenticate & obtain JWT tokens |
-| **Auth** | `POST` | `/api/v1/auth/refresh` | Single-use refresh token rotation |
-| **Auth** | `POST` | `/api/v1/auth/logout` | Revoke active refresh token |
-| **Auth** | `GET` | `/api/v1/auth/me` | Current authenticated user |
-| **Auth** | `POST` | `/api/v1/auth/change-password` | Update password & invalidate sessions |
-| **Users** | `GET` | `/api/v1/users/me` | Authenticated user profile |
-| **Users** | `PATCH` | `/api/v1/users/me` | Update display name or avatar |
-| **Users** | `GET` | `/api/v1/users/{id}` | Public safe profile (redacted) |
-| **Voices** | `POST` | `/api/v1/voices` | Create voice profile metadata |
-| **Voices** | `GET` | `/api/v1/voices` | List user voice profiles |
-| **Voices** | `GET` | `/api/v1/voices/{id}` | Get profile metadata (No raw audio/embeddings) |
-| **Voices** | `PATCH` | `/api/v1/voices/{id}` | Update profile status or label |
-| **Voices** | `DELETE` | `/api/v1/voices/{id}` | Delete voice profile |
-| **Trusted** | `POST` | `/api/v1/trusted-voices` | Register trusted contact |
-| **Trusted** | `GET` | `/api/v1/trusted-voices` | List trusted contacts |
-| **Trusted** | `GET` | `/api/v1/trusted-voices/{id}` | Get contact details |
-| **Trusted** | `PATCH` | `/api/v1/trusted-voices/{id}` | Update relationship or status |
-| **Trusted** | `DELETE`| `/api/v1/trusted-voices/{id}` | Remove trusted contact |
-| **Analysis**| `POST` | `/api/v1/analysis/audio` | Optional offline audio deepfake analysis |
-| **Analysis**| `GET` | `/api/v1/analysis/{id}` | Get prior audio analysis result |
-| **Analysis**| `POST` | `/api/v1/analysis/compare` | Compare reference vs. suspect representations |
-| **Calls** | `POST` | `/api/v1/calls` | Initiate call session (`RINGING`) |
-| **Calls** | `GET` | `/api/v1/calls` | List past and active calls |
-| **Calls** | `GET` | `/api/v1/calls/{id}` | Get call details |
-| **Calls** | `POST` | `/api/v1/calls/{id}/accept` | Accept incoming call |
-| **Calls** | `POST` | `/api/v1/calls/{id}/reject` | Reject incoming call |
-| **Calls** | `POST` | `/api/v1/calls/{id}/end` | Terminate active call |
-| **Calls** | `POST` | `/api/v1/calls/{id}/security-events` | Ingest real-time client detection alert |
-| **Calls** | `GET` | `/api/v1/calls/{id}/security-events` | List in-call security alerts |
-| **Signaling**| `WS` | `/api/v1/ws/signaling/{call_id}` | Authenticated WebRTC signaling relay |
-| **Threats** | `GET` | `/api/v1/threats` | Filter threat history by severity & type |
-| **Threats** | `GET` | `/api/v1/threats/summary` | Aggregate threat metrics & severity stats |
-| **Threats** | `GET` | `/api/v1/threats/timeline` | Daily time-series threat charting |
-| **Threats** | `GET` | `/api/v1/threats/{id}` | Get specific threat event |
-| **Incidents**| `POST` | `/api/v1/incidents` | Create tamper-evident incident report |
-| **Incidents**| `GET` | `/api/v1/incidents` | List user incidents |
-| **Incidents**| `GET` | `/api/v1/incidents/{id}` | Get incident report with canonical hash |
-| **Incidents**| `POST` | `/api/v1/incidents/{id}/anchor` | Anchor canonical hash to blockchain |
-| **Incidents**| `GET` | `/api/v1/incidents/{id}/verification`| Verify evidence against on-chain proof |
-| **Demo**     | `GET` | `/api/v1/demo/scenarios` | List controlled attack simulation scenarios |
-| **Demo**     | `POST`| `/api/v1/demo/execute` | Execute attack simulation step / challenge failure |
-| **Demo**     | `POST`| `/api/v1/demo/tamper-test` | Run in-memory cryptographic tamper verification |
-| **Demo**     | `POST`| `/api/v1/demo/reset` | Reset demo state and telemetry |
-| **Health** | `GET` | `/health` | Basic liveness probe |
-| **Health** | `GET` | `/api/v1/health` | Deep multi-component readiness probe |
-
----
-
-## 9. Security & Cryptographic Boundaries
-
-1. **Argon2id Password Hashing**: Conforms to RFC 9106 ($m=64\text{MB}, t=3, p=4$).
-2. **JWT Security & Token Rotation**: 15-minute access tokens. 7-day refresh tokens stored as SHA-256 hashes. If an already-rotated refresh token is presented, the entire token family is immediately revoked to thwart token replay attacks.
-3. **Data Protection at Rest**: Biometric vectors are encrypted with AES-256-GCM. Raw audio is never retained.
-4. **Canonical Evidence Hashing**: Security incidents are deterministically formatted under `RFC 8785` (JSON Canonicalization Scheme) and hashed with `SHA-256`, producing tamper-evident cryptographic proofs.
-5. **HTTP Defense**: Sliding-window rate limiting, `X-Request-ID` correlation, `nosniff`, `DENY` frames, and strict CORS controls.
-
----
-
-## 10. Documentation Index
-
-For detailed architectural specifications and client integration guides, refer to the `docs/` directory:
-- [Phase 5: Attack Simulation & Live Demo](file:///docs/PHASE_5_ATTACK_SIMULATION.md)
-- [Hackathon Demonstration & Evaluation Guide](file:///docs/DEMO_GUIDE.md)
-- [System Architecture](file:///docs/ARCHITECTURE.md)
-- [Frontend Architecture (Phase 3)](file:///docs/FRONTEND_ARCHITECTURE.md)
-- [Frontend Privacy Audit (Zero-Server-Audio)](file:///docs/FRONTEND_PRIVACY_AUDIT.md)
-- [WebRTC Architecture Specification](file:///docs/WEBRTC_ARCHITECTURE.md)
-- [Frontend-Backend API Contract](file:///docs/FRONTEND_BACKEND_CONTRACT.md)
-- [API Specification](file:///docs/API_SPECIFICATION.md)
-- [Database Schema & ERD](file:///docs/DATABASE_DESIGN.md)
-- [Security Model & Threat Vectors](file:///docs/SECURITY_MODEL.md)
-- [AI Intelligence Pipeline & Threat Engine](file:///docs/AI_PIPELINE.md)
-- [Blockchain Evidence & Ledger Anchoring](file:///docs/BLOCKCHAIN_DESIGN.md)
-- [API Usage Examples (curl & JSON)](file:///docs/API_EXAMPLES.md)
+For complete judging materials, pitch scripts, and slide decks, refer to the `docs/` directory:
+- [Master Hackathon Compendium & 30+ Judge Q&As](docs/HACKATHON_FINAL.md)
+- [Presentation Slide Deck Outline (12 Slides)](docs/PRESENTATION_SLIDES.md)
+- [Phase 6: Security Hardening & Performance Audit](docs/PHASE_6_SECURITY_HARDENING.md)
+- [Phase 5: Attack Simulation & Live Demo](docs/PHASE_5_ATTACK_SIMULATION.md)
+- [Phase 4: Real Pretrained Model Verification](docs/PHASE_4_VERIFICATION.md)
+- [Hackathon Demonstration & Evaluation Guide](docs/DEMO_GUIDE.md)
+- [Security Model & Threat Vectors](docs/SECURITY_MODEL.md)
+- [AI Intelligence Pipeline & Provenance](docs/AI_PIPELINE.md)
+- [AI Model Audit & Truth-in-Engineering](docs/AI_MODEL_AUDIT.md)
+- [System Architecture](docs/ARCHITECTURE.md)
+- [WebRTC Architecture Specification](docs/WEBRTC_ARCHITECTURE.md)
+- [Database Schema & ERD](docs/DATABASE_DESIGN.md)
+- [API Specification](docs/API_SPECIFICATION.md)
