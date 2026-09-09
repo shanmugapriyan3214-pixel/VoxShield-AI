@@ -61,6 +61,15 @@ class ThreatFusionEngine(BaseAIComponent):
         is_claimed_trusted_contact: bool = False,
         anomaly_flags: Optional[List[str]] = None,
     ) -> ThreatAssessment:
+        import math
+        for val, name in [
+            (ai_probability, "ai_probability"),
+            (speaker_match_score, "speaker_match_score"),
+            (liveness_score, "liveness_score"),
+        ]:
+            if val is not None and (math.isnan(val) or math.isinf(val)):
+                raise ValueError(f"Invalid numeric input for {name}: NaN or Infinity not permitted")
+
         indicators: List[str] = []
         flags = anomaly_flags or []
 

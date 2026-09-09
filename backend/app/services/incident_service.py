@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import PermissionDeniedException, ResourceNotFoundException
+from app.db.models.call import Call
 from app.db.models.incident import Incident
 from app.schemas.incident import IncidentCreate, IncidentUpdate
 
@@ -35,6 +36,15 @@ class IncidentService:
         user_id: str,
         data: IncidentCreate,
     ) -> Incident:
+        # Verify call participation if call_id is supplied (prevent IDOR)
+        if data.call_id:
+            stmt_call = select(Call).where(Call.id == data.call_id)
+            call = (await db.execute(stmt_call)).scalars().first()
+            if not call:
+                raise ResourceNotFoundException(f"Call session '{data.call_id}' not found.")
+            if user_id not in (call.caller_id, call.receiver_id):
+                raise PermissionDeniedException("You are not an authorized participant in this call session.")
+
         # Generate human-friendly sequential incident number e.g. VOX-2026-0042
         year = datetime.now(timezone.utc).year
         stmt_count = select(func.count(Incident.id))

@@ -411,8 +411,7 @@ class AttackSimulator:
         """Cleanly reset demo state and challenges without database corruption."""
         if call_id:
             # Clear active challenge if any
-            if call_id in challenge_service._active_challenges:
-                del challenge_service._active_challenges[call_id]
+            challenge_service.cleanup_call(call_id)
 
         return DemoResetResponse(
             status="SUCCESS",

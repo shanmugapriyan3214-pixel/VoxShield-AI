@@ -52,9 +52,17 @@ class Settings(BaseSettings):
             return v
         return []
 
-    # Rate Limiting
-    RATE_LIMIT_PER_MINUTE: int = 120
-    AUTH_RATE_LIMIT_PER_MINUTE: int = 20
+    # Rate Limiting & Abuse Prevention
+    RATE_LIMIT_PER_MINUTE: int = 180
+    AUTH_RATE_LIMIT_PER_MINUTE: int = 30
+    CHALLENGE_RATE_LIMIT_PER_MINUTE: int = 20
+    INCIDENT_RATE_LIMIT_PER_MINUTE: int = 30
+    DEMO_RATE_LIMIT_PER_MINUTE: int = 60
+    TELEMETRY_RATE_LIMIT_PER_MINUTE: int = 120
+
+    # WebSocket Security & Frame Bounds
+    WS_MAX_MESSAGE_BYTES: int = 65536  # 64 KB max frame size
+    WS_MAX_MESSAGES_PER_SECOND: int = 30
 
     # AI Configuration
     AI_DETECTOR_PROVIDER: str = "mock"

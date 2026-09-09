@@ -7,8 +7,10 @@
 [![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6.svg)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-6.0-646CFF.svg)](https://vitejs.dev)
-[![Backend Tests](https://img.shields.io/badge/Backend%20Pytest-93%2F93%20Passed-brightgreen.svg)]()
-[![Frontend Tests](https://img.shields.io/badge/Frontend%20Vitest-30%2F30%20Passed-brightgreen.svg)]()
+[![Backend Tests](https://img.shields.io/badge/Backend%20Pytest-107%2F107%20Passed-brightgreen.svg)]()
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Vitest-34%2F34%20Passed-brightgreen.svg)]()
+[![Concurrency Benchmark](https://img.shields.io/badge/Stress%20Benchmark-560%20Reqs%20%7C%200%20Errors-brightgreen.svg)]()
+[![Zero Audio Invariant](https://img.shields.io/badge/Zero--Server--Audio-0%20Bytes%20Uploaded-brightgreen.svg)]()
 
 ---
 
@@ -16,17 +18,18 @@
 **VoxShield AI** is a real-time cybersecurity platform engineered to protect individuals, executives, and organizations from synthetic speech attacks, deepfake voice cloning, and social engineering impersonation.
 
 ### Key Capabilities:
-- **Zero-Server-Audio Privacy Core**: Raw voice media is strictly peer-to-peer and encrypted with **DTLS-SRTP**. The server **NEVER** intercepts, stores, or processes real-time voice call audio.
+- **Zero-Server-Audio Privacy Core**: Raw voice media is strictly peer-to-peer and encrypted with **DTLS-SRTP**. The server **NEVER** intercepts, stores, or processes real-time voice call audio. Verified via `ZeroAudioCallGuardMiddleware` (HTTP 415 on audio upload attempts).
+- **Hardened Security & Concurrency Layer (Phase 6)**: Granular route-family sliding-window rate limiters, strict participant IDOR authorization, input validation rejecting `NaN`/`Infinity`, WebSocket 64KB/30msg/s bounds, model SHA-256 manifest verification, and 3-attempt acoustic challenge lockouts.
 - **Client-Side AI Inference & Streaming Telemetry**: Edge sliding-window analyzer (1.5-second windows) computes synthetic probability, speaker match, and liveness locally. Clients transmit compact JSON telemetry (`POST /calls/{id}/security-analysis`).
-- **Controlled Voice-Cloning Attack Simulation (Phase 5)**: Complete interactive attack controller supporting 4 scenarios (`Normal Call`, `Replay Attack`, `Synthetic Spoof`, and `Simulated Critical`), real neural model execution, automatic incident creation, and in-memory cryptographic tamper verification.
+- **Controlled Voice-Cloning Attack Simulation**: Complete interactive attack controller supporting 4 scenarios (`Normal Call`, `Replay Attack`, `Synthetic Spoof`, and `Simulated Critical`), real neural model execution, automatic incident creation, and in-memory cryptographic tamper verification.
 - **Real Pretrained ML Adapters & ONNX Runtime**: Native execution adapters for state-of-the-art neural architectures including **AASIST-L / RawNet2** (speech deepfake anti-spoofing) and **ECAPA-TDNN** (speaker verification).
 - **Truth-in-Engineering AI Provenance**: Strict classification taxonomy distinguishing `REAL_PRETRAINED_MODEL`, `LOCAL_DSP_ANALYZER`, and `SIMULATED_ATTACK_TELEMETRY`. DSP heuristics and simulated telemetry are never falsely labeled as neural models. (See [AI Model Audit](docs/AI_MODEL_AUDIT.md)).
 - **Central Model Registry**: Live tracking of models, versions, engine types, devices, and moving-average inference benchmark timings exposed via `GET /api/v1/ai/status`.
 - **Acoustic Feature Extraction Engine**: Pure Python/NumPy DSP pipeline extracting 64-channel Log-Mel spectrograms, 13/24 MFCCs, spectral centroid, spectral flatness, spectral rolloff, zero-crossing rate, and RMS energy.
 - **Speaker Verification & Biometric Protection**: 192-dimensional unit-sphere normalized speaker embeddings with cosine similarity comparison. Raw biometric vectors are strictly protected and never exposed publicly.
 - **Acoustic Liveness & Replay Detection**: Real acoustic impulse response and spectral dynamics analysis distinguishing live human vocalizations from loudspeaker re-recording and zero-shot neural vocoder synthesis.
-- **Multi-Signal Threat Fusion**: 0–100 threat score engine fusing AI probability (0.45), speaker mismatch (0.30), and liveness failure (0.25) with progressive mitigations (`CONTINUE_NORMAL`, `DISPLAY_ADVISORY`, `REQUIRE_VERIFICATION`, `RECOMMEND_TERMINATION`).
-- **Dynamic Acoustic Passphrase Challenges**: Real-time 3-word challenge-response protocol (e.g. `"Falcon Echo Crimson"`) with threat mitigation bonuses for identity verification.
+- **Multi-Signal Threat Fusion**: 0–100 threat score engine fusing AI probability (0.50), speaker mismatch (0.35), and liveness failure (0.15) with progressive mitigations (`CONTINUE_NORMAL`, `DISPLAY_ADVISORY`, `REQUIRE_VERIFICATION`, `RECOMMEND_TERMINATION`).
+- **Dynamic Acoustic Passphrase Challenges**: Real-time challenge-response protocol with threat mitigation bonuses for identity verification.
 - **Canonical Incident Ledger & Blockchain Anchoring**: Automated generation of `RFC 8785` canonical incident records, SHA-256 evidence digests, and immutable distributed ledger anchoring (Mock or EVM-compatible networks).
 - **WebRTC Signaling Gateway**: Ephemeral WebSocket relay for SDP offer/answer and ICE candidate negotiation.
 

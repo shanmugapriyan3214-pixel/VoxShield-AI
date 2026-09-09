@@ -1,13 +1,14 @@
 """VoxShield AI — Call and Security Event Schemas."""
 
 import json
+import math
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class CallInitiateRequest(BaseModel):
-    receiver_id: str = Field(..., description="Target recipient user ID")
+    receiver_id: str = Field(..., min_length=1, max_length=100, description="Target recipient user ID")
 
 
 class CallResponse(BaseModel):
@@ -27,14 +28,24 @@ class CallResponse(BaseModel):
 class CallSecurityEventCreate(BaseModel):
     event_type: str = Field(
         ...,
+        min_length=1,
+        max_length=100,
         description="AI_VOICE_DETECTED | SPEAKER_MISMATCH | LIVENESS_FAILURE | HIGH_THREAT | CALL_VERIFIED",
     )
-    severity: str = Field(..., description="LOW | MEDIUM | HIGH | CRITICAL")
+    severity: str = Field(..., min_length=1, max_length=20, description="LOW | MEDIUM | HIGH | CRITICAL")
     threat_score: float = Field(..., ge=0.0, le=100.0)
     ai_probability: float = Field(..., ge=0.0, le=1.0)
     speaker_match_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     liveness_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("threat_score", "ai_probability", "speaker_match_score", "liveness_score", mode="before")
+    @classmethod
+    def reject_nan_inf(cls, v: Any) -> Any:
+        if v is not None and isinstance(v, (int, float)):
+            if math.isnan(v) or math.isinf(v):
+                raise ValueError("NaN and Infinity are not permitted.")
+        return v
 
 
 class CallSecurityEventResponse(BaseModel):
@@ -70,10 +81,18 @@ class SecurityTelemetryReportRequest(BaseModel):
     ai_generated_probability: float = Field(..., ge=0.0, le=1.0)
     speaker_match_probability: Optional[float] = Field(None, ge=0.0, le=1.0)
     liveness_probability: Optional[float] = Field(None, ge=0.0, le=1.0)
-    window_duration_ms: int = Field(default=1500, ge=100)
-    window_index: Optional[int] = None
+    window_duration_ms: int = Field(default=1500, ge=100, le=10000)
+    window_index: Optional[int] = Field(None, ge=0, le=10000000)
     client_timestamp_ms: Optional[int] = None
-    detected_artifacts: List[str] = Field(default_factory=list)
+    detected_artifacts: List[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("ai_generated_probability", "speaker_match_probability", "liveness_probability", mode="before")
+    @classmethod
+    def reject_nan_inf(cls, v: Any) -> Any:
+        if v is not None and isinstance(v, (int, float)):
+            if math.isnan(v) or math.isinf(v):
+                raise ValueError("NaN and Infinity are not permitted in security telemetry.")
+        return v
 
 
 class SecurityTelemetryResponse(BaseModel):
@@ -88,7 +107,7 @@ class SecurityTelemetryResponse(BaseModel):
 
 
 class ChallengeIssueRequest(BaseModel):
-    target_user_id: Optional[str] = None
+    target_user_id: Optional[str] = Field(None, max_length=100)
     timeout_seconds: Optional[int] = Field(None, ge=10, le=300)
 
 
@@ -103,9 +122,17 @@ class ChallengeResponse(BaseModel):
 
 
 class ChallengeVerifyRequest(BaseModel):
-    challenge_id: str
-    spoken_phrase: str
+    challenge_id: str = Field(..., min_length=1, max_length=100)
+    spoken_phrase: str = Field(..., min_length=1, max_length=250)
     liveness_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+
+    @field_validator("liveness_score", mode="before")
+    @classmethod
+    def reject_nan_inf(cls, v: Any) -> Any:
+        if v is not None and isinstance(v, (int, float)):
+            if math.isnan(v) or math.isinf(v):
+                raise ValueError("NaN and Infinity are not permitted.")
+        return v
 
 
 class ChallengeVerificationResponse(BaseModel):

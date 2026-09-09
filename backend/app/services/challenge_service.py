@@ -169,5 +169,23 @@ class ChallengeService:
                 timestamp=now,
             )
 
+    def cleanup_call(self, call_id: str) -> bool:
+        """Purge challenge state for a call upon termination or reset to prevent memory leaks."""
+        if call_id in self._active_challenges:
+            del self._active_challenges[call_id]
+            return True
+        return False
+
+    def purge_expired(self, max_age_seconds: int = 600) -> int:
+        """Periodic sweep to purge stale challenges older than max_age_seconds."""
+        now = utc_now()
+        to_delete = [
+            cid for cid, ch in self._active_challenges.items()
+            if (now - ch.created_at).total_seconds() > max_age_seconds
+        ]
+        for cid in to_delete:
+            del self._active_challenges[cid]
+        return len(to_delete)
+
 
 challenge_service = ChallengeService()

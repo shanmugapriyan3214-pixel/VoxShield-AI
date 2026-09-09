@@ -82,21 +82,24 @@ $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
 
 ---
 
-### Step 6: Automated Test Verification
-Run both backend and frontend test suites directly in terminal:
+### Step 6: Automated Test Verification & Security Audits
+Run both backend and frontend test suites and automated security benchmarks:
 
 ```powershell
-# Backend pytest suite (93/93 tests passing)
+# Backend pytest suite (107/107 tests passing)
 & "d:\voiceREG\.venv\Scripts\python.exe" -m pytest tests -v
 
-# Frontend Vitest suite (30/30 tests passing)
+# Frontend Vitest suite (34/34 tests passing)
 cd d:\voiceREG\frontend
 $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
 & "C:\Program Files\nodejs\npm.cmd" test -- --run
 
-# Automated Phase 5 Browser E2E Demo
+# Local Concurrency & Stress Benchmark (560 concurrent requests, 0 errors)
 cd d:\voiceREG
+& "d:\voiceREG\.venv\Scripts\python.exe" scripts/local_stress_test.py
+
+# Phase 6 Automated Browser E2E Security & Privacy Audit
 $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
-node scripts/browser_phase5_e2e_demo.mjs
+node scripts/browser_phase6_security_audit.mjs
 ```
 All tests will execute and pass cleanly.

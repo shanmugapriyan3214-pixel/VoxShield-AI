@@ -128,6 +128,7 @@ async def end_call(
     req_id: str = Depends(get_request_id),
 ) -> ApiResponse[CallResponse]:
     call = await CallService.end_call(db, call_id, current_user.id)
+    challenge_service.cleanup_call(call_id)
     return ApiResponse.ok(
         data=CallResponse.model_validate(call),
         request_id=req_id,

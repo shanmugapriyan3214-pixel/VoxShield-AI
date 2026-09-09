@@ -49,7 +49,16 @@ class PretrainedSpeakerEmbeddingService(BaseAIComponent):
             self._load_onnx_session(model_path)
 
     def _load_onnx_session(self, path: str) -> bool:
-        """Load and cache the ONNX speaker encoder session as a singleton."""
+        """Load and cache the ONNX speaker encoder session as a singleton after verifying SHA-256 integrity."""
+        from app.ai.runtime.integrity import verify_model_integrity
+
+        # 1. Verify model integrity against MANIFEST.json
+        if not verify_model_integrity("speaker", path):
+            self.available = False
+            self.status = "CHECKSUM_MISMATCH"
+            logger.error(f"Integrity check failed for speaker model '{path}'. Refusing to load.")
+            return False
+
         try:
             import onnxruntime as ort
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.device == "cuda" else ["CPUExecutionProvider"]

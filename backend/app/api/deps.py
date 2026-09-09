@@ -40,8 +40,8 @@ async def get_current_user(
             raise AuthenticationException("Invalid token claims or token type.")
     except jwt.ExpiredSignatureError:
         raise AuthenticationException("Access token has expired. Please refresh your session.")
-    except (jwt.InvalidTokenError, Exception) as err:
-        raise AuthenticationException(f"Invalid access token: {str(err)}")
+    except (jwt.InvalidTokenError, Exception):
+        raise AuthenticationException("Invalid or malformed access token.")
 
     user = await UserService.get_by_id(db, user_id)
     if not user:

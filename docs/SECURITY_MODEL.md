@@ -126,3 +126,39 @@ When an incident is created, an RFC 8785 canonical hash is computed and anchored
 3. The forged hash is compared against the immutable on-chain record.
 4. If $H(\text{original}) \neq H(\text{tampered})$, the platform raises an immediate `TAMPER DETECTED — EVIDENCE MISMATCH` alert.
 
+---
+
+## 7. Phase 6 Security Controls & Defense-in-Depth Hardening
+
+### 7.1 Zero-Server-Audio HTTP Guard
+Mounted at the outermost middleware boundary (`ZeroAudioCallGuardMiddleware`), this guard halts any attempt to POST `audio/*`, `multipart/form-data`, or binary octet streams to `/api/v1/calls/*` or `/api/v1/ws/signaling/*` with `HTTP 415 AUDIO_UPLOAD_FORBIDDEN_PRIVACY_INVARIANT`, ensuring 0 bytes of audio reach internal handlers.
+
+### 7.2 Granular Sliding-Window Rate Limiting
+Route-family token buckets prevent brute-force attacks while accommodating real-time call telemetry:
+- **Authentication**: 30 req/min
+- **Challenge Verification**: 20 req/min (supports `X-Forwarded-For` client isolation)
+- **Incident Reporting**: 30 req/min
+- **Attack Simulation Demo**: 60 req/min
+- **Telemetry Ingestion**: 120 req/min
+- **Health & Static Specs**: Exempt
+
+### 7.3 Authorization & IDOR Mitigations
+- Calls verify participant membership: Only the caller or callee can view, accept, reject, or terminate sessions.
+- Incidents verify call participation: Incident creation referencing a `call_id` requires the reporter to be an authorized party in that call session (`PermissionDeniedException` on cross-tenant attempts).
+
+### 7.4 Input Sanitization & NaN/Infinity Rejection
+- All telemetry and security event schemas reject IEEE 754 `NaN` and `Infinity` inputs via Pydantic validators.
+- Window durations are bound between 100ms and 10,000ms; telemetry list arrays are capped at 50 elements.
+- ThreatFusionEngine explicitly validates and sanitizes input floats before mathematical weighting.
+
+### 7.5 WebSocket Signaling Hardening
+- Max frame size: 64 KB (`WS_MAX_MESSAGE_BYTES`).
+- Message rate limit: 30 messages/second per connection.
+- Message whitelist: Only approved signaling verbs (`offer`, `answer`, `ice-candidate`, `ping`, `pong`, `ready`, `bye`, `renegotiate`) are relayed.
+- Audio guard: Connections transmitting binary audio frames are immediately terminated with policy violation code 1008.
+
+### 7.6 Pretrained Model Integrity & Provenance Verification
+- On startup, `verify_model_integrity()` computes the SHA-256 digest of loaded ONNX files and compares against `backend/models/weights/MANIFEST.json`.
+- Files with hash mismatches are flagged as `CHECKSUM_MISMATCH` and refused execution.
+- DSP liveness detection is explicitly attributed to digital signal processing without neural over-claiming.
+

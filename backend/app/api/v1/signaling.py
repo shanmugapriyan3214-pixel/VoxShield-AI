@@ -1,10 +1,10 @@
-"""VoxShield AI — WebRTC WebSocket Signaling Relay."""
-
 import json
-from typing import Optional
+import time
+from typing import List, Optional
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.logging import logger
 from app.core.security import decode_token
 from app.db.models.call import Call
@@ -13,6 +13,20 @@ from app.db.session import async_session_factory
 from app.webrtc.session_manager import signaling_manager
 
 router = APIRouter(tags=["WebRTC Signaling"])
+
+ALLOWED_SIGNALING_TYPES = {
+    "offer",
+    "answer",
+    "ice_candidate",
+    "call_invite",
+    "call_ended",
+    "ping",
+    "pong",
+    "security_alert",
+    "peer_status",
+    "peer_connected",
+    "peer_disconnected",
+}
 
 
 async def authenticate_ws(websocket: WebSocket, token: Optional[str]) -> Optional[User]:
@@ -77,16 +91,50 @@ async def websocket_signaling_endpoint(
         {"type": "peer_connected", "call_id": call_id, "user_id": user.id},
     )
 
+    msg_timestamps: List[float] = []
+
     try:
         while True:
             text_data = await websocket.receive_text()
+
+            # 1. Payload size protection (max 64KB)
+            if len(text_data) > settings.WS_MAX_MESSAGE_BYTES:
+                logger.warning(f"WebSocket frame exceeded limit ({len(text_data)} bytes) from user {user.id}")
+                await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG, reason="Signaling payload exceeds maximum size limit")
+                return
+
+            # 2. Message flood protection
+            now = time.time()
+            msg_timestamps = [t for t in msg_timestamps if t > now - 1.0]
+            if len(msg_timestamps) >= settings.WS_MAX_MESSAGES_PER_SECOND:
+                logger.warning(f"WebSocket message flood detected from user {user.id}")
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Message rate limit exceeded")
+                return
+            msg_timestamps.append(now)
+
+            # 3. JSON parsing
             try:
                 msg = json.loads(text_data)
             except Exception:
                 await websocket.send_json({"type": "error", "message": "Invalid JSON frame"})
                 continue
 
+            if not isinstance(msg, dict):
+                await websocket.send_json({"type": "error", "message": "Message must be a JSON object"})
+                continue
+
             msg_type = msg.get("type", "")
+
+            # 4. Allowed message type whitelist
+            if msg_type not in ALLOWED_SIGNALING_TYPES:
+                await websocket.send_json({"type": "error", "message": f"Unsupported signaling message type: '{msg_type}'"})
+                continue
+
+            # 5. Zero-Server-Audio transport guard: reject any binary audio chunks
+            if "audio" in msg or "audio_chunk" in msg_type or "waveform" in msg:
+                logger.warning(f"Rejected audio transmission over WebSocket signaling from user {user.id}")
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Audio transmission over signaling forbidden (Zero-Server-Audio)")
+                return
 
             # Heartbeat
             if msg_type == "ping":

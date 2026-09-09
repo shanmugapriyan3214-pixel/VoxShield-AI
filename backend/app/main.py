@@ -26,6 +26,7 @@ from app.core.middleware import (
     RateLimitingMiddleware,
     RequestCorrelationMiddleware,
     SecurityHeadersMiddleware,
+    ZeroAudioCallGuardMiddleware,
 )
 from app.db.session import init_db
 
@@ -68,6 +69,7 @@ def create_application() -> FastAPI:
     # 2. Add Custom Cybersecurity Middleware
     app.add_middleware(RequestCorrelationMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(ZeroAudioCallGuardMiddleware)
     app.add_middleware(RateLimitingMiddleware)
 
     # 3. Add CORS Middleware

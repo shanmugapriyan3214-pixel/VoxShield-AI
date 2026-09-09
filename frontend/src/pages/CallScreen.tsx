@@ -677,6 +677,8 @@ export const CallScreen: React.FC = () => {
 
               {/* Verify Challenge Button */}
               <button
+                id="issue-challenge-btn"
+                data-testid="issue-challenge-btn"
                 onClick={handleIssueChallenge}
                 className="p-4 rounded-2xl bg-cyber-card border border-cyber-border text-cyber-cyan hover:border-cyber-cyan/60 transition-colors"
                 title="Issue Acoustic Identity Challenge"
@@ -830,6 +832,7 @@ export const CallScreen: React.FC = () => {
             <div className="flex flex-col gap-2.5 mt-6">
               <div className="flex gap-2">
                 <button
+                  id="submit-legit-challenge-btn"
                   onClick={() => handleVerifyChallenge(false)}
                   disabled={verifyingChallenge}
                   className="flex-1 py-3 rounded-xl bg-cyber-cyan text-cyber-bg text-xs font-mono font-bold uppercase shadow-cyan-glow hover:bg-cyan-300 disabled:opacity-50 transition-all"
@@ -837,6 +840,7 @@ export const CallScreen: React.FC = () => {
                   {verifyingChallenge ? 'Verifying...' : 'Submit Legit Response'}
                 </button>
                 <button
+                  id="simulate-fail-challenge-btn"
                   onClick={() => handleVerifyChallenge(true)}
                   disabled={verifyingChallenge}
                   className="flex-1 py-3 rounded-xl bg-cyber-crimson text-white text-xs font-mono font-bold uppercase shadow-crimson-glow hover:bg-red-600 disabled:opacity-50 transition-all"
@@ -846,6 +850,7 @@ export const CallScreen: React.FC = () => {
               </div>
 
               <button
+                id="close-challenge-modal-btn"
                 onClick={() => setShowChallengeModal(false)}
                 className="w-full py-2.5 rounded-xl bg-cyber-card border border-cyber-border text-xs font-mono text-cyber-muted hover:text-cyber-text"
               >
