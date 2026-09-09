@@ -166,8 +166,20 @@ async def main():
     df_stats = await benchmark_deepfake(deepfake_detector, audio, runs=100)
     spk_stats = await benchmark_speaker(speaker_service, audio, runs=100)
 
+    import platform
     report = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "environment": {
+            "os": platform.platform(),
+            "python": platform.python_version(),
+            "processor": platform.processor(),
+            "cpu_identifier": os.environ.get("PROCESSOR_IDENTIFIER", "Unknown"),
+            "execution_provider": "CPUExecutionProvider",
+            "sample_rate_hz": 16000,
+            "audio_duration_sec": 2.0,
+            "warmup_runs": 5,
+            "benchmark_runs": 100,
+        },
         "deepfake_model": df_stats,
         "speaker_model": spk_stats,
     }

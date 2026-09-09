@@ -254,7 +254,12 @@ export const AIStatus: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+                    <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-2">
+                      {key === 'liveness_detector' && !model.weights_loaded && (
+                        <div className="p-2 rounded bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-[11px] font-medium">
+                          Pretrained liveness model unavailable — DSP fallback active.
+                        </div>
+                      )}
                       {model.model_source && (
                         <div className="text-[10px] text-slate-500 font-mono">
                           Source: {model.model_source}

@@ -52,4 +52,5 @@ frontend/dist/
 # Large binary model weights
 *.onnx
 backend/models/weights/**/*.onnx
+.chrome-*/
 
