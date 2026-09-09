@@ -7,6 +7,7 @@ STRICT SECURITY INVARIANT:
 Never exposes absolute filesystem paths, internal weights, secrets, or credentials.
 """
 
+import os
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 
@@ -34,14 +35,60 @@ class ModelMetadata(BaseModel):
     input_shape: Optional[str] = None
     output_shape: Optional[str] = None
 
+    # Phase 4 Provenance Extensions
+    provenance: Optional[str] = None
+    type: Optional[str] = None
+    engine: Optional[str] = None
+    weights_installed: Optional[bool] = None
+    weights_loaded: Optional[bool] = None
+    inference_enabled: Optional[bool] = None
+
     def __init__(self, **data: Any):
         if "model_version" in data and "version" not in data:
             data["version"] = data.pop("model_version")
+        if "provenance" not in data or data["provenance"] is None:
+            data["provenance"] = data.get("engine_type")
+        is_real = (data.get("provenance") == "REAL_PRETRAINED_MODEL")
+        if "weights_installed" not in data or data["weights_installed"] is None:
+            mp = data.get("model_path")
+            data["weights_installed"] = bool(is_real and mp and os.path.exists(mp))
+        if "weights_loaded" not in data or data["weights_loaded"] is None:
+            avail = data.get("available", True)
+            stat = data.get("status", "LOADED")
+            data["weights_loaded"] = bool(is_real and avail and stat in ("LOADED", "READY", "ACTIVE"))
+        if "inference_enabled" not in data or data["inference_enabled"] is None:
+            data["inference_enabled"] = data.get("available", True)
         super().__init__(**data)
 
     def to_dict(self, mask_sensitive: bool = True) -> Dict[str, Any]:
-        """Convert metadata to dictionary, optionally masking internal server paths."""
+        """Convert metadata to dictionary, safely formatted for public API reporting."""
         d = self.model_dump()
+        prov = self.provenance or self.engine_type
+        d["name"] = self.model_name
+        d["provenance"] = prov
+        d["engine"] = self.engine or (
+            "ONNX Runtime" if "onnx" in self.framework.lower()
+            else ("DSP Signal Processor" if "dsp" in self.framework.lower() else "Mock Simulation")
+        )
+        d["framework"] = self.framework
+        d["device"] = self.device.upper()
+
+        is_real = (prov == "REAL_PRETRAINED_MODEL")
+        if self.weights_installed is not None:
+            d["weights_installed"] = self.weights_installed
+        else:
+            d["weights_installed"] = bool(is_real and self.model_path and os.path.exists(self.model_path))
+
+        if self.weights_loaded is not None:
+            d["weights_loaded"] = self.weights_loaded
+        else:
+            d["weights_loaded"] = bool(is_real and self.available and self.status in ("LOADED", "READY", "ACTIVE"))
+
+        if self.inference_enabled is not None:
+            d["inference_enabled"] = self.inference_enabled
+        else:
+            d["inference_enabled"] = self.available
+
         if mask_sensitive and d.get("model_path"):
             d["model_path"] = "[RESTRICTED_SERVER_PATH]"
         return d

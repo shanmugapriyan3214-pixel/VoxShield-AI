@@ -101,8 +101,9 @@ class LocalLivenessDetector(LivenessDetector):
                 input_duration_sec=1.5,
                 available=self.available,
                 status=self.status,
+                type="liveness_detection",
                 model_source="ASVspoof Physical Access (PA) Replay Benchmark / Acoustic Impulse Analysis",
-                description="Liveness and loudspeaker replay attack detection engine.",
+                description="Pretrained liveness model unavailable; DSP fallback active. Acoustic impulse decay and spectral rolloff analysis.",
             ),
         )
 

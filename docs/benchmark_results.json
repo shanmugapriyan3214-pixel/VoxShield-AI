@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-09-09T00:58:59Z",
+  "deepfake_model": {
+    "runs": 100,
+    "mean_ms": 75.63,
+    "std_ms": 5.49,
+    "min_ms": 66.94,
+    "p50_ms": 74.77,
+    "p95_ms": 84.96,
+    "p99_ms": 89.09,
+    "max_ms": 105.92,
+    "throughput_fps": 13.22,
+    "cold_start_ms": 214.07,
+    "warmup_avg_ms": 100.95,
+    "engine": "REAL_PRETRAINED_MODEL",
+    "model_name": "AASIST-L-AntiSpoof-ONNX",
+    "model_version": "aasist-l-v1.0",
+    "framework": "onnxruntime"
+  },
+  "speaker_model": {
+    "runs": 100,
+    "mean_ms": 43.96,
+    "std_ms": 11.72,
+    "min_ms": 30.69,
+    "p50_ms": 42.21,
+    "p95_ms": 54.28,
+    "p99_ms": 83.35,
+    "max_ms": 130.61,
+    "throughput_fps": 22.75,
+    "cold_start_ms": 220.4,
+    "warmup_avg_ms": 91.89,
+    "engine": "REAL_PRETRAINED_MODEL",
+    "model_name": "ECAPA-TDNN-VoxCeleb-ONNX",
+    "model_version": "ecapa-voxceleb-v1.0",
+    "framework": "onnxruntime"
+  }
+}

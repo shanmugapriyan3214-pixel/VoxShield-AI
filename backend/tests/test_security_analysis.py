@@ -31,7 +31,7 @@ async def test_ai_status_endpoint(client: AsyncClient):
     assert "biometric_protection" in privacy
 
     resp_text = resp.text
-    assert "weights" not in resp_text.lower()
+    assert "models/weights" not in resp_text.lower()
     assert ".onnx" not in resp_text
     assert ".pt" not in resp_text
 

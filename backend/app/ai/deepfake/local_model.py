@@ -8,6 +8,7 @@ from app.ai.config import (
     ENGINE_MOCK_DEMO,
     ENGINE_REAL_PRETRAINED,
     ai_settings,
+    resolve_model_path,
 )
 from app.ai.deepfake.base import DeepfakeDetector
 from app.ai.deepfake.dsp_detector import DSPDeepfakeDetector
@@ -38,7 +39,7 @@ class LocalDeepfakeDetector(DeepfakeDetector):
     ):
         dev = device or ai_settings.AI_DEVICE
         fb = fallback_mode or ai_settings.AI_FALLBACK_MODE
-        path = model_path or ai_settings.DEEPFAKE_MODEL_PATH
+        path = resolve_model_path(model_path or ai_settings.DEEPFAKE_MODEL_PATH)
 
         self.device = dev
         self.model_path = path
@@ -49,22 +50,45 @@ class LocalDeepfakeDetector(DeepfakeDetector):
         self._dsp: DSPDeepfakeDetector = DSPDeepfakeDetector(device=dev)
         self._mock: MockDeepfakeDetector = MockDeepfakeDetector(device=dev)
 
+        backend_mode = getattr(ai_settings, "AI_BACKEND", "auto").lower()
+
         # 1. Attempt to load real pretrained model if checkpoint exists
-        if path and os.path.exists(path):
-            name = model_name or "AASIST-L-AntiSpoof-ONNX"
-            ver = model_version or "aasist-v1.0"
-            self._pretrained = PretrainedDeepfakeDetector(
-                model_path=path,
-                model_name=name,
-                model_version=ver,
-                device=dev,
-            )
-            if self._pretrained.available:
-                self._active_engine = self._pretrained
+        if backend_mode == "mock":
+            self._active_engine = self._mock
+        elif backend_mode == "dsp":
+            self._active_engine = self._dsp
+        elif backend_mode == "none":
+            self._active_engine = self._resolve_fallback_none()
+        elif backend_mode == "pretrained":
+            if path and os.path.exists(path):
+                self._pretrained = PretrainedDeepfakeDetector(
+                    model_path=path,
+                    model_name=model_name or "AASIST-L-AntiSpoof-ONNX",
+                    model_version=model_version or "aasist-l-v1.0",
+                    device=dev,
+                )
+                if self._pretrained.available:
+                    self._active_engine = self._pretrained
+                else:
+                    self._active_engine = self._resolve_fallback_none()
+            else:
+                self._active_engine = self._resolve_fallback_none()
+        else:  # auto
+            if path and os.path.exists(path):
+                name = model_name or "AASIST-L-AntiSpoof-ONNX"
+                ver = model_version or "aasist-l-v1.0"
+                self._pretrained = PretrainedDeepfakeDetector(
+                    model_path=path,
+                    model_name=name,
+                    model_version=ver,
+                    device=dev,
+                )
+                if self._pretrained.available:
+                    self._active_engine = self._pretrained
+                else:
+                    self._active_engine = self._resolve_fallback()
             else:
                 self._active_engine = self._resolve_fallback()
-        else:
-            self._active_engine = self._resolve_fallback()
 
         super().__init__(
             model_name=self._active_engine.model_name,
@@ -79,15 +103,21 @@ class LocalDeepfakeDetector(DeepfakeDetector):
         # Register in central ModelRegistry
         self._register_in_model_registry()
 
+    @property
+    def metadata(self) -> Optional[ModelMetadata]:
+        return model_registry.get("deepfake_detector")
+
+    def _resolve_fallback_none(self) -> DeepfakeDetector:
+        detector = PretrainedDeepfakeDetector(model_path=self.model_path or "missing.onnx", device=self.device)
+        detector.available = False
+        detector.status = "ADAPTER_READY_NO_WEIGHTS"
+        return detector
+
     def _resolve_fallback(self) -> DeepfakeDetector:
         """Resolve fallback implementation when real neural weights are not present."""
         if self.fallback_mode == "none":
-            # Declare explicitly unavailable
             logger.warning("Pretrained deepfake model weights missing and AI_FALLBACK_MODE='none'. Model marked unavailable.")
-            detector = PretrainedDeepfakeDetector(model_path=self.model_path or "missing.onnx", device=self.device)
-            detector.available = False
-            detector.status = "ADAPTER_READY_NO_WEIGHTS"
-            return detector
+            return self._resolve_fallback_none()
         elif self.fallback_mode == "mock":
             logger.info("Operating deepfake detector in MOCK_DEMO_MODEL mode.")
             return self._mock
@@ -109,7 +139,9 @@ class LocalDeepfakeDetector(DeepfakeDetector):
                 input_duration_sec=1.5,
                 available=self.available,
                 status=self.status,
-                model_source="ASVspoof 2019/2021 Logical Access Benchmark (AASIST / RawNet2)",
+                model_path=self.model_path if self.engine_type == "REAL_PRETRAINED_MODEL" else None,
+                type="deepfake_detection",
+                model_source="ASVspoof 2019/2021 Logical Access Benchmark (AASIST-L)",
                 description="Speech anti-spoofing and synthetic voice clone detector.",
             ),
         )

@@ -1,6 +1,6 @@
 # VoxShield AI — AI Model Architecture, Provenance Audit & Technical Claim Verification
 
-**Document Version:** 2.5.0  
+**Document Version:** 4.0.0  
 **Status:** Canonical & Audited  
 **Classification:** Technical Architecture & Compliance Audit  
 **Date:** September 2026  
@@ -17,32 +17,33 @@ In competitive cybersecurity and applied machine learning, **truth in engineerin
 > A DSP heuristic or mathematical transform must never be labeled as a neural network.  
 > A deterministic simulation must never be labeled as a local model.  
 > Every component must declare its true execution engine:  
-> - `REAL_PRETRAINED_MODEL`: Weights exist on disk and inference runs through an active ONNX Runtime session.  
-> - `LOCAL_DSP_ANALYZER`: Deterministic acoustic signal processing (MFCC, spectral flatness, zero-crossing rate, rolloff).  
-> - `MOCK_DEMO_MODEL`: Parametric or simulated scores for sandbox environments and automated functional tests.
+> - `REAL_PRETRAINED_MODEL`: Weights exist on disk, cryptographic SHA-256 matches `MANIFEST.json`, and inference runs through an active ONNX Runtime session.  
+> - `LOCAL_DSP_ANALYZER`: Deterministic acoustic signal processing (MFCC, spectral flatness, zero-crossing rate, rolloff, impulse decay).  
+> - `ADAPTER_READY_NO_WEIGHTS`: Model adapter integrated, but weights missing from disk.  
+> - `MOCK_DEMO_MODEL`: Parametric or simulated scores for sandbox environments and automated functional tests.  
+> - `UNAVAILABLE`: Disabled or uninitialized component.
 
-When real pretrained model weights (multi-hundred-megabyte checkpoints) are not installed in the local environment, the system explicitly reports:  
-`"status": "ADAPTER_READY_NO_WEIGHTS"`  
+When real pretrained model weights are not installed in the local environment, the system explicitly reports:  
+`"status": "ADAPTER_READY_NO_WEIGHTS"` or `"status": "FALLBACK_DSP"`  
 and gracefully degrades according to `AI_FALLBACK_MODE` (`"dsp"`, `"mock"`, or `"none"`).
 
 ---
 
 ## 2. AI Component Classification Matrix
 
-| AI Subsystem | Component Class | Engine Type (`engine_type`) | Framework | Default / Target Checkpoint | Provenance / Dataset |
+| AI Subsystem | Component Class | Engine Type (`engine_type`) | Framework | Active Checkpoint | Provenance / Dataset |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Deepfake Detector (Neural)** | `PretrainedDeepfakeDetector` | `REAL_PRETRAINED_MODEL` | `onnxruntime` | `models/weights/aasist_ssl.onnx` | ASVspoof 2019/2021 Logical Access (LA) Benchmark |
+| **Deepfake Detector (Neural)** | `PretrainedDeepfakeDetector` | `REAL_PRETRAINED_MODEL` | `onnxruntime` | `models/weights/deepfake/aasist-l.onnx` (766 KB) | ASVspoof 2019/2021 Logical Access (LA) Benchmark |
 | **Deepfake Detector (DSP)** | `DSPDeepfakeDetector` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Algorithmic DSP) | Vocoder phase discontinuity & spectral flatness heuristics |
 | **Deepfake Detector (Mock)** | `MockDeepfakeDetector` | `MOCK_DEMO_MODEL` | `mock` | None (Parametric) | Synthetic test data generator |
-| **Speaker Encoder (Neural)** | `PretrainedSpeakerEmbeddingService` | `REAL_PRETRAINED_MODEL` | `onnxruntime` | `models/weights/ecapa_tdnn.onnx` | VoxCeleb 1 & 2 (192-dim unit $L_2$ normalized) |
+| **Speaker Encoder (Neural)** | `PretrainedSpeakerEmbeddingService` | `REAL_PRETRAINED_MODEL` | `onnxruntime` | `models/weights/speaker/voxceleb.onnx` (80.2 MB) | VoxCeleb 1 & 2 (192-dim unit $L_2$ normalized) |
 | **Speaker Encoder (DSP)** | `DSPSpeakerEmbeddingService` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Algorithmic DSP) | 13-band MFCC delta projection to 192-dim unit hypersphere |
 | **Speaker Encoder (Mock)** | `MockSpeakerEmbeddingService` | `MOCK_DEMO_MODEL` | `mock` | None (Parametric) | Deterministic pseudorandom embedding vectors |
 | **Speaker Verification** | `SpeakerComparisonService` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Mathematical) | Vectorized Cosine Similarity with adaptive confidence |
-| **Liveness Detector (Neural)**| `PretrainedLivenessDetector` | `REAL_PRETRAINED_MODEL` | `onnxruntime` | `models/weights/replay_liveness.onnx`| ASVspoof Physical Access (PA) Replay Benchmark |
-| **Liveness Detector (DSP)** | `DSPLivenessDetector` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Algorithmic DSP) | Acoustic impulse decay & high-frequency rolloff |
+| **Liveness Detector (DSP Active)**| `LocalLivenessDetector` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Active DSP Fallback) | Acoustic impulse decay & high-frequency rolloff |
 | **Liveness Detector (Mock)** | `MockLivenessDetector` | `MOCK_DEMO_MODEL` | `mock` | None (Parametric) | Deterministic replay simulator |
 | **Threat Scoring** | `ThreatFusionEngine` | `LOCAL_DSP_ANALYZER` | `python_math` | None (Deterministic) | Multi-factor weighted Bayesian fusion & hysteresis |
-| **Edge Stream Analyzer** | `LocalStreamAnalyzer` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Edge Client) | Client-side 1.5s sliding window with 0.75s hop |
+| **Edge Stream Analyzer** | `LocalStreamAnalyzer` | `LOCAL_DSP_ANALYZER` | `dsp_numpy` | None (Edge Client) | Client-side 1.5s sliding window with 1.0s hop |
 
 ---
 

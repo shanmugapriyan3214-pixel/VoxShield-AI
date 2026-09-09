@@ -13,6 +13,7 @@ from app.ai.config import (
     ENGINE_MOCK_DEMO,
     ENGINE_REAL_PRETRAINED,
     ai_settings,
+    resolve_model_path,
 )
 from app.ai.registry import ModelMetadata, model_registry
 from app.ai.schemas import SpeakerEmbeddingResult
@@ -48,7 +49,7 @@ class LocalSpeakerEmbeddingService(SpeakerEmbeddingService):
     ):
         dev = device or ai_settings.AI_DEVICE
         fb = fallback_mode or ai_settings.AI_FALLBACK_MODE
-        path = model_path or ai_settings.SPEAKER_MODEL_PATH
+        path = resolve_model_path(model_path or ai_settings.SPEAKER_MODEL_PATH)
 
         self.device = dev
         self.model_path = path
@@ -60,23 +61,47 @@ class LocalSpeakerEmbeddingService(SpeakerEmbeddingService):
         self._dsp: DSPSpeakerEmbeddingService = DSPSpeakerEmbeddingService(dimension=dimension, device=dev)
         self._mock: MockSpeakerEmbeddingService = MockSpeakerEmbeddingService(dimension=dimension, device=dev)
 
+        backend_mode = getattr(ai_settings, "AI_BACKEND", "auto").lower()
+
         # 1. Attempt to load real pretrained model if checkpoint exists
-        if path and os.path.exists(path):
-            name = model_name or "ECAPA-TDNN-VoxCeleb-ONNX"
-            ver = model_version or "ecapa-v1.0"
-            self._pretrained = PretrainedSpeakerEmbeddingService(
-                model_path=path,
-                model_name=name,
-                model_version=ver,
-                dimension=dimension,
-                device=dev,
-            )
-            if self._pretrained.available:
-                self._active_engine = self._pretrained
+        if backend_mode == "mock":
+            self._active_engine = self._mock
+        elif backend_mode == "dsp":
+            self._active_engine = self._dsp
+        elif backend_mode == "none":
+            self._active_engine = self._resolve_fallback_none()
+        elif backend_mode == "pretrained":
+            if path and os.path.exists(path):
+                self._pretrained = PretrainedSpeakerEmbeddingService(
+                    model_path=path,
+                    model_name=model_name or "ECAPA-TDNN-VoxCeleb-ONNX",
+                    model_version=model_version or "ecapa-voxceleb-v1.0",
+                    dimension=dimension,
+                    device=dev,
+                )
+                if self._pretrained.available:
+                    self._active_engine = self._pretrained
+                else:
+                    self._active_engine = self._resolve_fallback_none()
+            else:
+                self._active_engine = self._resolve_fallback_none()
+        else:  # auto
+            if path and os.path.exists(path):
+                name = model_name or "ECAPA-TDNN-VoxCeleb-ONNX"
+                ver = model_version or "ecapa-voxceleb-v1.0"
+                self._pretrained = PretrainedSpeakerEmbeddingService(
+                    model_path=path,
+                    model_name=name,
+                    model_version=ver,
+                    dimension=dimension,
+                    device=dev,
+                )
+                if self._pretrained.available:
+                    self._active_engine = self._pretrained
+                else:
+                    self._active_engine = self._resolve_fallback()
             else:
                 self._active_engine = self._resolve_fallback()
-        else:
-            self._active_engine = self._resolve_fallback()
 
         super().__init__(
             model_name=self._active_engine.model_name,
@@ -91,14 +116,25 @@ class LocalSpeakerEmbeddingService(SpeakerEmbeddingService):
         # Register in central ModelRegistry
         self._register_in_model_registry()
 
+    @property
+    def metadata(self) -> Optional[ModelMetadata]:
+        return model_registry.get("speaker_encoder")
+
+    def _resolve_fallback_none(self) -> BaseAIComponent:
+        service = PretrainedSpeakerEmbeddingService(
+            model_path=self.model_path or "missing.onnx",
+            dimension=self.dimension,
+            device=self.device,
+        )
+        service.available = False
+        service.status = "ADAPTER_READY_NO_WEIGHTS"
+        return service
+
     def _resolve_fallback(self) -> BaseAIComponent:
         """Resolve fallback implementation when real neural weights are not present."""
         if self.fallback_mode == "none":
             logger.warning("Pretrained speaker model weights missing and AI_FALLBACK_MODE='none'. Model marked unavailable.")
-            service = PretrainedSpeakerEmbeddingService(model_path=self.model_path or "missing.onnx", dimension=self.dimension, device=self.device)
-            service.available = False
-            service.status = "ADAPTER_READY_NO_WEIGHTS"
-            return service
+            return self._resolve_fallback_none()
         elif self.fallback_mode == "mock":
             logger.info("Operating speaker encoder in MOCK_DEMO_MODEL mode.")
             return self._mock
@@ -120,7 +156,9 @@ class LocalSpeakerEmbeddingService(SpeakerEmbeddingService):
                 input_duration_sec=1.5,
                 available=self.available,
                 status=self.status,
-                model_source="VoxCeleb 1 & 2 Speaker Verification Benchmark (ECAPA-TDNN / ResNet34)",
+                model_path=self.model_path if self.engine_type == "REAL_PRETRAINED_MODEL" else None,
+                type="speaker_verification",
+                model_source="SpeechBrain VoxCeleb 1 & 2 Benchmark (ECAPA-TDNN)",
                 description="Speaker voiceprint embedding extractor for cosine identity verification.",
             ),
         )

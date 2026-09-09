@@ -141,15 +141,21 @@ class PretrainedDeepfakeDetector(DeepfakeDetector):
 
     def _prepare_tensor(self, waveform: np.ndarray, sr: int) -> np.ndarray:
         """Format waveform into expected ONNX model input dimensions."""
-        # Expected shape can be [batch, samples] or [batch, 1, samples] or [batch, 1, mels, frames]
         if self._input_shape is not None and len(self._input_shape) == 4:
             # Spectrogram-based model [batch, channels, n_mels, time]
             log_mel = audio_feature_extractor.extract_log_mel_spectrogram(waveform, sr=sr)
             return np.expand_dims(np.expand_dims(log_mel, axis=0), axis=0).astype(np.float32)
 
         # Raw waveform model [batch, samples]
-        # Target 24000 samples (1.5s at 16kHz)
-        target_len = 24000
+        # Inspect model input shape (AASIST expects 64600 samples)
+        target_len = 64600
+        if self._input_shape is not None and len(self._input_shape) >= 2:
+            dim_val = self._input_shape[-1]
+            if isinstance(dim_val, int) and dim_val > 0:
+                target_len = dim_val
+            elif isinstance(self._input_shape[1], int) and self._input_shape[1] > 0:
+                target_len = self._input_shape[1]
+
         if len(waveform) < target_len:
             padded = np.pad(waveform, (0, target_len - len(waveform)), mode="constant")
         else:

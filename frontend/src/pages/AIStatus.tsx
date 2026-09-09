@@ -45,24 +45,38 @@ export const AIStatus: React.FC = () => {
     switch (engineType) {
       case 'REAL_PRETRAINED_MODEL':
         return {
-          label: 'MODEL WEIGHTS INSTALLED & EXECUTING',
+          label: 'REAL PRETRAINED MODEL (WEIGHTS LOADED)',
           classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-          desc: 'PyTorch / ONNX neural network running real pre-trained weights',
+          desc: 'Pretrained neural network checkpoint verified and executing inference via ONNX Runtime.',
           isNeural: true,
         };
       case 'LOCAL_DSP_ANALYZER':
         return {
-          label: 'ADAPTER READY (DSP FALLBACK ACTIVE)',
+          label: 'LOCAL DSP ANALYZER (DSP ACTIVE)',
           classes: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-          desc: 'Pretrained adapter is ready. Model weights not installed; currently utilizing DSP acoustic feature extraction fallback.',
+          desc: 'Signal processing heuristics active (spectral centroid, tilt, impulse decay, high-frequency rolloff).',
+          isNeural: false,
+        };
+      case 'ADAPTER_READY_NO_WEIGHTS':
+        return {
+          label: 'ADAPTER READY (NO WEIGHTS)',
+          classes: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+          desc: 'Model adapter code integrated and ready, but neural weights file is missing from local disk.',
           isNeural: false,
         };
       case 'MOCK_DEMO_MODEL':
-      default:
         return {
           label: 'MOCK DEMO MODEL',
           classes: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
           desc: 'Simulated heuristic model for lightweight testing and evaluation demonstration.',
+          isNeural: false,
+        };
+      case 'UNAVAILABLE':
+      default:
+        return {
+          label: 'UNAVAILABLE / DISABLED',
+          classes: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+          desc: 'Component disabled, uninitialized, or missing dependencies.',
           isNeural: false,
         };
     }
@@ -200,6 +214,26 @@ export const AIStatus: React.FC = () => {
                         </div>
 
                         <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                          <span className="text-slate-400">Execution Engine</span>
+                          <span className="font-mono text-slate-300">
+                            {model.engine || (model.framework === 'onnxruntime' ? 'ONNX Runtime' : model.framework)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                          <span className="text-slate-400">Weights Status</span>
+                          <span className="font-mono text-xs">
+                            {model.weights_loaded ? (
+                              <span className="text-emerald-400 font-semibold">Loaded & Executing</span>
+                            ) : model.weights_installed ? (
+                              <span className="text-amber-400 font-semibold">Installed</span>
+                            ) : (
+                              <span className="text-cyan-400 font-semibold">DSP Fallback</span>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                           <span className="text-slate-400">Sampling Rate</span>
                           <span className="font-mono text-slate-300">{model.input_sample_rate} Hz</span>
                         </div>
@@ -209,16 +243,23 @@ export const AIStatus: React.FC = () => {
                           <span className="font-mono text-slate-300">{model.input_duration_sec}s</span>
                         </div>
 
-                        {model.inference_time_ms != null && (
+                        {(model.inference_time_ms != null || model.benchmark_avg_ms != null) && (
                           <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                            <span className="text-slate-400">Latency</span>
-                            <span className="font-mono text-cyan-400">{model.inference_time_ms.toFixed(1)} ms</span>
+                            <span className="text-slate-400">Benchmark Latency</span>
+                            <span className="font-mono text-cyan-400">
+                              {(model.benchmark_avg_ms || model.inference_time_ms)?.toFixed(1)} ms
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
+                    <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+                      {model.model_source && (
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          Source: {model.model_source}
+                        </div>
+                      )}
                       <span className="line-clamp-2 italic">{model.description || badge.desc}</span>
                     </div>
                   </div>
