@@ -105,5 +105,24 @@ The API gateway enforces:
 - `X-Content-Type-Options`: `nosniff`
 - `X-Frame-Options`: `DENY`
 - `Strict-Transport-Security`: `max-age=31536000; includeSubDomains; preload`
-- `Referrer-Policy`: `strict-origin-when-cross-origin`
 - `X-Request-ID`: Injected for end-to-end distributed tracing across all logs and response headers.
+
+---
+
+## 6. Controlled Attack Simulation & Tamper-Evident Verification
+
+### 6.1 Attack Simulation Without Threat Generation
+To validate real-time voice defense capabilities safely without distributing weaponized voice-cloning technology, VoxShield AI uses a dual-track simulation architecture:
+1. **Algorithmic Waveforms for Real Neural Models**:
+   - In `NORMAL`, `REPLAY_ATTACK`, and `SYNTHETIC_SPOOF` scenarios, client/controller buffers feed algorithmic waveforms (harmonic tones, room impulse response convolutions, phase-jittered signals) directly into genuine ONNX sessions (`AASIST-L` and `ECAPA-TDNN`).
+   - Evaluates genuine neural acoustic inference, vector norms, and DSP spectral features.
+2. **Deterministic Attack Telemetry**:
+   - The `SIMULATED_CRITICAL` scenario demonstrates high-volume telemetry escalation, automated incident logging, and cryptographic anchoring without requiring synthetic voice audio.
+
+### 6.2 In-Memory Cryptographic Tamper Demonstration
+When an incident is created, an RFC 8785 canonical hash is computed and anchored to the distributed ledger. Operators can trigger an in-memory tampering test (`POST /api/v1/demo/tamper-test`):
+1. An incident field (e.g. `threat_score`, `severity`) is mutated in memory.
+2. The mutated payload is canonicalized via JCS (RFC 8785) and re-hashed.
+3. The forged hash is compared against the immutable on-chain record.
+4. If $H(\text{original}) \neq H(\text{tampered})$, the platform raises an immediate `TAMPER DETECTED — EVIDENCE MISMATCH` alert.
+

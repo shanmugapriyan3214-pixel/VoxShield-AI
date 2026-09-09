@@ -10,6 +10,7 @@ from app.api.v1 import (
     analysis,
     auth,
     calls,
+    demo,
     health,
     incidents,
     signaling,
@@ -96,6 +97,7 @@ def create_application() -> FastAPI:
     app.include_router(signaling.router, prefix=settings.API_V1_STR)
     app.include_router(threats.router, prefix=settings.API_V1_STR)
     app.include_router(incidents.router, prefix=settings.API_V1_STR)
+    app.include_router(demo.router, prefix=settings.API_V1_STR)
     app.include_router(health.router, prefix=settings.API_V1_STR)
 
     return app

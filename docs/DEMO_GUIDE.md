@@ -40,45 +40,45 @@ $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
 3. Select an existing user or type a recipient ID. Click **"Start Encrypted Call"**.
 4. You will be placed into the **Live Call Cockpit** (`/app/calls/:callId`):
    - Notice the **DTLS-SRTP Encrypted** badge confirming peer-to-peer security.
-   - Look at the top **Demo Scenario Selector**:
-     - Click **"Normal Voice"**: Observe the Threat Shield glow **EMERALD** (Threat Score < 15, AI Prob < 5%, Speaker Match > 90%).
-     - Click **"Suspicious Audio"**: Observe the Threat Shield turn **AMBER** (Threat Score ~55, anomaly flags raised).
-     - Click **"Voice Clone Attack"**: Watch the Threat Shield turn **CRIMSON** with a pulsing alert!
-       - Threat Score spikes to **85–98/100**.
-       - AI Clone Probability reaches **94%**.
-       - Forensic indicators flag `vocoder_phase_discontinuity` and `zero_shot_diffusion_artifact`.
+   - Observe the **Controlled Attack Simulation Controller**:
+     - **Normal Call**: Runs baseline speech through genuine AASIST-L and ECAPA-TDNN ONNX models (Threat Score < 15, Emerald Shield).
+     - **Replay Attack**: Injects room impulse response convolution into real neural models.
+     - **Synthetic Spoof**: Evaluates phase-discontinuity vocoder waveforms through real AASIST-L.
+     - **Simulated Critical**: Demonstrates high-volume telemetry escalation without requiring synthetic voice clones.
+   - Click **"Run Attack Sequence"**:
+     - Watch the threat score smoothly escalate from LOW (12.0) -> ADVISORY (48.0) -> HIGH (76.5) -> CRITICAL (94.0).
+     - The Threat Shield pulses **CRIMSON**.
+     - An **Automatic Incident Banner** appears immediately with an RFC 8785 canonical SHA-256 evidence digest anchored to the blockchain.
 
 ---
 
 ### Step 3: Out-of-Band Acoustic Challenge-Response
-1. While in the call cockpit during a voice cloning attack, click **"Issue Acoustic Challenge"**.
+1. In the call cockpit, click **"Issue Acoustic Challenge"** (or click **"Fail Challenge"** in the Attack Controller).
 2. A dynamically generated, phoneme-locked phrase appears (e.g. *"The quick amber fox jumps over the cryptographic cipher"*).
-3. Type or verify the phrase:
-   - Entering the correct phrase resolves the challenge with verified acoustic timestamping.
-   - Failing the challenge triggers an immediate termination recommendation.
+3. Operators can test both pathways:
+   - **Legitimate Verification**: Spoken phrase matches; liveness confirmed; threat score drops by -40 points.
+   - **Simulated Attacker Failure**: Submits invalid response; triggers immediate critical escalation and creates an incident.
 
 ---
 
-### Step 4: File Tamper-Evident Incident & Blockchain Anchor
-1. Click **"Incidents"** in the sidebar (`/app/incidents`).
-2. Click **"File Incident Report"** (or escalate directly from the call screen).
-3. Fill in the incident parameters (or review pre-populated forensic indicators) and click **"Create & Anchor"**.
-4. You are taken to the **Incident Inspection Cockpit** (`/app/incidents/:id`):
-   - Inspect the **Canonical SHA-256 Evidence Digest** computed using RFC 8785 canonical JSON serialization.
-   - Click **"Anchor to Blockchain"**: The digest is anchored to the distributed ledger, producing a transaction hash and block height.
-   - Click **"Verify Cryptographic Proof"**: VoxShield AI fetches on-chain evidence and recomputes the SHA-256 hash in real time:
-     - Shows green shield: **"CRYPTOGRAPHIC INTEGRITY VERIFIED: Hashes match on-chain record"**.
+### Step 4: Cryptographic Tamper Demonstration
+1. On the persistent incident banner, click **"Run Tamper Test"**.
+2. An interactive audit dialog displays the incident's immutable on-chain SHA-256 digest.
+3. Select an in-memory mutation field (e.g. `threat_score` from `88.5` to `12.0`, or `severity` from `CRITICAL` to `LOW`).
+4. Click **"Verify Cryptographic Tamper Alert"**:
+   - VoxShield AI re-normalizes the altered JSON via RFC 8785 and recomputes the SHA-256 hash.
+   - Demonstrates immediate cryptographic divergence between the forged hash and original on-chain hash.
+   - Renders a prominent red alert: **"TAMPER DETECTED — EVIDENCE MISMATCH"**.
 
 ---
 
 ### Step 5: Transparent AI Model Registry (`/app/ai-status`)
 1. Click **"AI Registry"** in the sidebar.
 2. Inspect the operational provenance of each subsystem:
-   - **Deepfake Detector (AASIST-L)** -> declared engine type and operational state.
-   - **Speaker Verification (ECAPA-TDNN)** -> cosine similarity threshold.
-   - **Liveness Detector (CQCC-GMM)** -> replay detection status.
-   - **Streaming Sliding Window Engine** -> 3.0s window, 0.5s hop, 16kHz sampling rate.
-   - **Zero-Server-Audio Privacy Invariants** -> Biometric safeguards verified.
+   - **Deepfake Detector (AASIST-L)** -> ONNX session status, latency, input/output tensors.
+   - **Speaker Verification (ECAPA-TDNN)** -> 192-d embedding dimension, cosine threshold.
+   - **Liveness Detector (LOCAL_DSP_ANALYZER)** -> Truthful DSP spectral and phase analysis.
+   - **Zero-Server-Audio Privacy Invariants** -> Verified 0 bytes raw audio uploaded to server.
 
 ---
 
@@ -86,12 +86,17 @@ $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
 Run both backend and frontend test suites directly in terminal:
 
 ```powershell
-# Backend pytest suite (69/69 tests)
-& "d:\voiceREG\.venv\Scripts\python.exe" -m pytest backend/tests
+# Backend pytest suite (93/93 tests passing)
+& "d:\voiceREG\.venv\Scripts\python.exe" -m pytest tests -v
 
-# Frontend Vitest suite (5/5 tests + privacy assertions)
+# Frontend Vitest suite (30/30 tests passing)
 cd d:\voiceREG\frontend
 $env:PATH = "C:\Program Files\nodejs;" + $env:PATH
-& "C:\Program Files\nodejs\npm.cmd" run test
+& "C:\Program Files\nodejs\npm.cmd" test -- --run
+
+# Automated Phase 5 Browser E2E Demo
+cd d:\voiceREG
+$env:PATH = "C:\Program Files\nodejs;" + $env:PATH
+node scripts/browser_phase5_e2e_demo.mjs
 ```
 All tests will execute and pass cleanly.

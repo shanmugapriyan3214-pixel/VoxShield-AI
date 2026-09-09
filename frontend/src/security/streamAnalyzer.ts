@@ -1,7 +1,14 @@
 import { api } from '../api/client';
 import { SecurityTelemetryReportRequest, SecurityTelemetryResponse } from '../types/call';
 
-export type DemoScenario = 'live' | 'normal' | 'suspicious' | 'voice_clone';
+export type DemoScenario =
+  | 'live'
+  | 'normal'
+  | 'replay_attack'
+  | 'synthetic_spoof'
+  | 'simulated_critical'
+  | 'suspicious'     // legacy alias for replay_attack
+  | 'voice_clone';    // legacy alias for simulated_critical
 
 export interface StreamAnalyzerCallbacks {
   onTelemetryResult: (result: SecurityTelemetryResponse) => void;
@@ -59,20 +66,25 @@ export class ClientStreamAnalyzer {
     let liveness = 0.96;
     let artifacts: string[] = [];
 
-    if (this.scenario === 'voice_clone') {
-      aiProb = 0.94 + Math.random() * 0.04;
-      speakerMatch = 0.28 + Math.random() * 0.06;
-      liveness = 0.25 + Math.random() * 0.05;
-      artifacts = ['spectral_discontinuity', 'vocoder_phase_discontinuity', 'zero_shot_diffusion_artifact'];
-    } else if (this.scenario === 'suspicious') {
-      aiProb = 0.52 + Math.random() * 0.08;
-      speakerMatch = 0.62 + Math.random() * 0.06;
-      liveness = 0.58 + Math.random() * 0.06;
-      artifacts = ['spectral_tilt_anomaly'];
+    if (this.scenario === 'simulated_critical' || this.scenario === 'voice_clone') {
+      aiProb = 0.96 + Math.random() * 0.03;
+      speakerMatch = 0.22 + Math.random() * 0.04;
+      liveness = 0.18 + Math.random() * 0.04;
+      artifacts = ['spectral_discontinuity', 'vocoder_phase_discontinuity', 'multi_vector_voice_clone', 'synthetic_diffusion_pattern'];
+    } else if (this.scenario === 'synthetic_spoof') {
+      aiProb = 0.91 + Math.random() * 0.04;
+      speakerMatch = 0.33 + Math.random() * 0.05;
+      liveness = 0.42 + Math.random() * 0.05;
+      artifacts = ['vocoder_phase_discontinuity', 'high_freq_spectral_noise', 'artificial_harmonics'];
+    } else if (this.scenario === 'replay_attack' || this.scenario === 'suspicious') {
+      aiProb = 0.48 + Math.random() * 0.06;
+      speakerMatch = 0.54 + Math.random() * 0.05;
+      liveness = 0.28 + Math.random() * 0.04;
+      artifacts = ['acoustic_room_impulse', 'spectral_damping', 'phase_smearing'];
     } else if (this.scenario === 'normal') {
-      aiProb = 0.03 + Math.random() * 0.03;
-      speakerMatch = 0.92 + Math.random() * 0.05;
-      liveness = 0.95 + Math.random() * 0.03;
+      aiProb = 0.03 + Math.random() * 0.02;
+      speakerMatch = 0.94 + Math.random() * 0.03;
+      liveness = 0.95 + Math.random() * 0.02;
       artifacts = [];
     } else {
       // Live microphone signal analysis using AnalyserNode

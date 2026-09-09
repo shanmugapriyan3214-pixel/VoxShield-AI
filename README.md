@@ -7,8 +7,8 @@
 [![React 18](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6.svg)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-6.0-646CFF.svg)](https://vitejs.dev)
-[![Backend Tests](https://img.shields.io/badge/Backend%20Pytest-69%2F69%20Passed-brightgreen.svg)]()
-[![Frontend Tests](https://img.shields.io/badge/Frontend%20Vitest-5%2F5%20Passed-brightgreen.svg)]()
+[![Backend Tests](https://img.shields.io/badge/Backend%20Pytest-93%2F93%20Passed-brightgreen.svg)]()
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Vitest-30%2F30%20Passed-brightgreen.svg)]()
 
 ---
 
@@ -18,8 +18,9 @@
 ### Key Capabilities:
 - **Zero-Server-Audio Privacy Core**: Raw voice media is strictly peer-to-peer and encrypted with **DTLS-SRTP**. The server **NEVER** intercepts, stores, or processes real-time voice call audio.
 - **Client-Side AI Inference & Streaming Telemetry**: Edge sliding-window analyzer (1.5-second windows) computes synthetic probability, speaker match, and liveness locally. Clients transmit compact JSON telemetry (`POST /calls/{id}/security-analysis`).
+- **Controlled Voice-Cloning Attack Simulation (Phase 5)**: Complete interactive attack controller supporting 4 scenarios (`Normal Call`, `Replay Attack`, `Synthetic Spoof`, and `Simulated Critical`), real neural model execution, automatic incident creation, and in-memory cryptographic tamper verification.
 - **Real Pretrained ML Adapters & ONNX Runtime**: Native execution adapters for state-of-the-art neural architectures including **AASIST-L / RawNet2** (speech deepfake anti-spoofing) and **ECAPA-TDNN** (speaker verification).
-- **Truth-in-Engineering AI Provenance**: Strict classification taxonomy distinguishing `REAL_PRETRAINED_MODEL`, `LOCAL_DSP_ANALYZER`, and `MOCK_DEMO_MODEL`. DSP heuristics are never falsely labeled as neural models. (See [AI Model Audit](docs/AI_MODEL_AUDIT.md)).
+- **Truth-in-Engineering AI Provenance**: Strict classification taxonomy distinguishing `REAL_PRETRAINED_MODEL`, `LOCAL_DSP_ANALYZER`, and `SIMULATED_ATTACK_TELEMETRY`. DSP heuristics and simulated telemetry are never falsely labeled as neural models. (See [AI Model Audit](docs/AI_MODEL_AUDIT.md)).
 - **Central Model Registry**: Live tracking of models, versions, engine types, devices, and moving-average inference benchmark timings exposed via `GET /api/v1/ai/status`.
 - **Acoustic Feature Extraction Engine**: Pure Python/NumPy DSP pipeline extracting 64-channel Log-Mel spectrograms, 13/24 MFCCs, spectral centroid, spectral flatness, spectral rolloff, zero-crossing rate, and RMS energy.
 - **Speaker Verification & Biometric Protection**: 192-dimensional unit-sphere normalized speaker embeddings with cosine similarity comparison. Raw biometric vectors are strictly protected and never exposed publicly.
@@ -242,6 +243,10 @@ Once started, explore the complete interactive OpenAPI schema at:
 | **Incidents**| `GET` | `/api/v1/incidents/{id}` | Get incident report with canonical hash |
 | **Incidents**| `POST` | `/api/v1/incidents/{id}/anchor` | Anchor canonical hash to blockchain |
 | **Incidents**| `GET` | `/api/v1/incidents/{id}/verification`| Verify evidence against on-chain proof |
+| **Demo**     | `GET` | `/api/v1/demo/scenarios` | List controlled attack simulation scenarios |
+| **Demo**     | `POST`| `/api/v1/demo/execute` | Execute attack simulation step / challenge failure |
+| **Demo**     | `POST`| `/api/v1/demo/tamper-test` | Run in-memory cryptographic tamper verification |
+| **Demo**     | `POST`| `/api/v1/demo/reset` | Reset demo state and telemetry |
 | **Health** | `GET` | `/health` | Basic liveness probe |
 | **Health** | `GET` | `/api/v1/health` | Deep multi-component readiness probe |
 
@@ -260,11 +265,12 @@ Once started, explore the complete interactive OpenAPI schema at:
 ## 10. Documentation Index
 
 For detailed architectural specifications and client integration guides, refer to the `docs/` directory:
+- [Phase 5: Attack Simulation & Live Demo](file:///docs/PHASE_5_ATTACK_SIMULATION.md)
+- [Hackathon Demonstration & Evaluation Guide](file:///docs/DEMO_GUIDE.md)
 - [System Architecture](file:///docs/ARCHITECTURE.md)
 - [Frontend Architecture (Phase 3)](file:///docs/FRONTEND_ARCHITECTURE.md)
 - [Frontend Privacy Audit (Zero-Server-Audio)](file:///docs/FRONTEND_PRIVACY_AUDIT.md)
 - [WebRTC Architecture Specification](file:///docs/WEBRTC_ARCHITECTURE.md)
-- [Hackathon Demonstration & Evaluation Guide](file:///docs/DEMO_GUIDE.md)
 - [Frontend-Backend API Contract](file:///docs/FRONTEND_BACKEND_CONTRACT.md)
 - [API Specification](file:///docs/API_SPECIFICATION.md)
 - [Database Schema & ERD](file:///docs/DATABASE_DESIGN.md)

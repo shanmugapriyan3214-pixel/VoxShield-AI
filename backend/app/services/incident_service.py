@@ -37,9 +37,14 @@ class IncidentService:
     ) -> Incident:
         # Generate human-friendly sequential incident number e.g. VOX-2026-0042
         year = datetime.now(timezone.utc).year
-        stmt_count = select(func.count(Incident.id)).where(Incident.user_id == user_id)
+        stmt_count = select(func.count(Incident.id))
         count = (await db.execute(stmt_count)).scalar() or 0
         incident_number = f"VOX-{year}-{(count + 1):04d}"
+        stmt_check = select(Incident.id).where(Incident.incident_number == incident_number)
+        while (await db.execute(stmt_check)).scalars().first():
+            count += 1
+            incident_number = f"VOX-{year}-{(count + 1):04d}"
+            stmt_check = select(Incident.id).where(Incident.incident_number == incident_number)
 
         # Build canonical payload for cryptographic hashing
         canonical_payload = {

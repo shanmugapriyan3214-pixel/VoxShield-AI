@@ -176,3 +176,26 @@ When suspicious activity is detected, participants can issue an acoustic verific
 }
 ```
 **ZERO SERVER AUDIO**: The server processes metadata only and returns immediate progressive threat instructions.
+
+---
+
+## 8. Controlled Voice-Cloning Attack Simulation (Phase 5)
+
+Phase 5 introduces a controlled attack simulation subsystem (`app/demo/`) designed to evaluate end-to-end detection, dynamic challenge-response, and incident response under realistic conditions.
+
+### 8.1 Simulation Scenarios & Model Provenance
+| Scenario | Target Vector | Provenance Engine | AI Models Executed |
+| :--- | :--- | :--- | :--- |
+| `NORMAL` | Baseline Human Speech | `REAL_PRETRAINED_MODEL` | `AASIST-L` (p < 0.05) + `ECAPA-TDNN` (match > 0.90) + `LOCAL_DSP` |
+| `REPLAY_ATTACK` | Acoustic Replay | `REAL_PRETRAINED_MODEL` | `AASIST-L` + `ECAPA-TDNN` + Room Impulse Convolution |
+| `SYNTHETIC_SPOOF` | Neural Vocoder Synthesis | `REAL_PRETRAINED_MODEL` | `AASIST-L` (p > 0.90) + `ECAPA-TDNN` + Phase Jitter |
+| `SIMULATED_CRITICAL` | Telemetry Demonstration | `SIMULATED_ATTACK_TELEMETRY` | High-volume simulated telemetry (no fake AI claims) |
+
+### 8.2 Pure Algorithmic Audio Generation
+For neural model evaluation, test samples are generated deterministically in memory via `app/demo/audio_samples.py` using NumPy:
+- **Baseline Voice**: 16 kHz multi-harmonic tone waveform modeling natural formant distributions.
+- **Replay Sample**: Baseline waveform convolved with an exponentially decaying room impulse response filter to simulate loudspeaker re-recording.
+- **Synthetic Spoof**: Signal subjected to random phase perturbations, high-frequency harmonic overtones, and spectral flattening.
+
+Zero external malicious cloning tools are used; inference benchmarks and embeddings are genuine ONNX Runtime executions.
+
