@@ -10,10 +10,21 @@ export interface CallResponse {
   started_at?: string | null;
   ended_at?: string | null;
   created_at: string;
+  caller_name?: string | null;
+  caller_voxshield_id?: string | null;
+  receiver_name?: string | null;
+  receiver_voxshield_id?: string | null;
+  duration_seconds?: number | null;
+  latest_threat_score?: number | null;
+  latest_severity?: string | null;
 }
 
 export interface CallInitiateRequest {
   receiver_id: string;
+}
+
+export interface ChallengeIssueRequest {
+  timeout_seconds?: number;
 }
 
 export interface SecurityTelemetryReportRequest {
@@ -24,6 +35,11 @@ export interface SecurityTelemetryReportRequest {
   window_index?: number;
   client_timestamp_ms?: number;
   detected_artifacts?: string[];
+  transaction_type?: string | null;
+  transaction_amount?: number | null;
+  urgency_level?: string | null;
+  caller_known?: boolean | null;
+  language?: string | null;
 }
 
 export type ThreatSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -38,6 +54,16 @@ export interface SecurityTelemetryResponse {
   call_terminated: boolean;
   event_id?: string | null;
   timestamp: string;
+  ai_probability?: number | null;
+  speaker_match_score?: number | null;
+  liveness_score?: number | null;
+  detected_artifacts?: string[];
+  social_engineering_risk?: boolean;
+  context_risk?: number | null;
+  breakdown?: Record<string, number> | null;
+  diagnostics?: Record<string, any> | null;
+  confidence?: number;
+  disclaimer?: string;
 }
 
 export interface CallSecurityEventResponse {

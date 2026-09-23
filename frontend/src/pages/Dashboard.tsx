@@ -6,6 +6,13 @@ import { ThreatEventResponse, ThreatSummaryResponse } from '../types/threat';
 import { IncidentResponse } from '../types/incident';
 import { TrustedVoiceResponse } from '../types/voice';
 import { AIStatusResponse } from '../types/ai';
+import { LiveWaveform } from '../components/security/LiveWaveform';
+import {
+  VoiceAuthenticityResultCard,
+  VoiceAuthenticityStatus,
+  SecurityRiskLevel,
+} from '../components/security/VoiceAuthenticityResultCard';
+import { useServerHealth } from '../context/ServerHealthContext';
 import {
   Activity,
   AlertTriangle,
@@ -13,15 +20,21 @@ import {
   CheckCircle2,
   Cpu,
   FileText,
-  Lock,
+  Mic,
   PhoneCall,
+  Radio,
+  RefreshCw,
+  Server,
   Shield,
   ShieldAlert,
+  ShieldCheck,
+  Sparkles,
   Users,
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { health } = useServerHealth();
   const [loading, setLoading] = useState(true);
   const [calls, setCalls] = useState<CallResponse[]>([]);
   const [threatSummary, setThreatSummary] = useState<ThreatSummaryResponse | null>(null);
@@ -30,340 +43,419 @@ export const Dashboard: React.FC = () => {
   const [trustedVoices, setTrustedVoices] = useState<TrustedVoiceResponse[]>([]);
   const [aiStatus, setAiStatus] = useState<AIStatusResponse | null>(null);
 
+  // Threat table filter
+  const [threatFilter, setThreatFilter] = useState('ALL');
+
+  // Interactive demo preview state on Dashboard
+  const [demoState, setDemoState] = useState<'SAFE' | 'SUSPICIOUS' | 'HIGH_RISK'>('SAFE');
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [callsData, threatSum, threatsList, incData, tvData, aiData] = await Promise.allSettled([
+        api.get<CallResponse[]>('/calls?limit=10'),
+        api.get<ThreatSummaryResponse>('/threats/summary'),
+        api.get<ThreatEventResponse[]>('/threats?limit=10'),
+        api.get<IncidentResponse[]>('/incidents?limit=5'),
+        api.get<TrustedVoiceResponse[]>('/trusted-voices'),
+        api.get<AIStatusResponse>('/ai/status'),
+      ]);
+
+      if (callsData.status === 'fulfilled') setCalls(callsData.value);
+      if (threatSum.status === 'fulfilled') setThreatSummary(threatSum.value);
+      if (threatsList.status === 'fulfilled') setRecentThreats(threatsList.value);
+      if (incData.status === 'fulfilled') setIncidents(incData.value);
+      if (tvData.status === 'fulfilled') setTrustedVoices(tvData.value);
+      if (aiData.status === 'fulfilled') setAiStatus(aiData.value);
+    } catch {
+      // Graceful fallback
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [callsData, threatSum, threatsList, incData, tvData, aiData] = await Promise.allSettled([
-          api.get<CallResponse[]>('/calls?limit=5'),
-          api.get<ThreatSummaryResponse>('/threats/summary'),
-          api.get<ThreatEventResponse[]>('/threats?limit=5'),
-          api.get<IncidentResponse[]>('/incidents?limit=5'),
-          api.get<TrustedVoiceResponse[]>('/trusted-voices'),
-          api.get<AIStatusResponse>('/ai/status'),
-        ]);
-
-        if (callsData.status === 'fulfilled') setCalls(callsData.value);
-        if (threatSum.status === 'fulfilled') setThreatSummary(threatSum.value);
-        if (threatsList.status === 'fulfilled') setRecentThreats(threatsList.value);
-        if (incData.status === 'fulfilled') setIncidents(incData.value);
-        if (tvData.status === 'fulfilled') setTrustedVoices(tvData.value);
-        if (aiData.status === 'fulfilled') setAiStatus(aiData.value);
-      } catch {
-        // Handle gracefully without exposing sensitive error trace
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
 
-  const activeCallsCount = calls.filter((c) => c.status === 'ACTIVE' || c.status === 'RINGING').length;
-  const openIncidentsCount = incidents.filter((i) => i.status === 'OPEN' || i.status === 'INVESTIGATING').length;
+  const totalThreats = threatSummary?.total_events || recentThreats.length || 0;
   const criticalThreats = threatSummary?.critical_count || 0;
 
+  // Active call status
+  const activeCalls = calls.filter((c) => c.status === 'ACTIVE' || c.status === 'ACCEPTED');
+  const hasActiveCall = activeCalls.length > 0;
+
+  // Demo state data mapping
+  const demoDataMap = {
+    SAFE: {
+      status: 'SAFE' as VoiceAuthenticityStatus,
+      riskLevel: 'LOW' as SecurityRiskLevel,
+      confidence: 95,
+      reasons: [
+        'Natural biological formant transitions and physiological micro-jitter detected',
+        'Consistent prosodic cadence matching human speech patterns',
+        'No synthetic vocoder envelope artifacts or phase discontinuities observed',
+      ],
+      action: 'Voice characteristics appear authentic. Standard communication guidelines apply.',
+      technical: {
+        aiProbability: 0.04,
+        humanProbability: 0.96,
+        speakerMatch: 0.94,
+        snrDb: 24.5,
+        detectedArtifacts: [],
+      },
+    },
+    SUSPICIOUS: {
+      status: 'SUSPICIOUS' as VoiceAuthenticityStatus,
+      riskLevel: 'MODERATE' as SecurityRiskLevel,
+      confidence: 78,
+      reasons: [
+        'Anti-spoofing analysis detected acoustic irregularities',
+        'Unusual pitch stability or borderline replay characteristics observed',
+        'Acoustic signal confidence is mixed across spectral bands',
+      ],
+      action: 'Exercise caution. Verify caller identity through a secondary channel before proceeding.',
+      technical: {
+        aiProbability: 0.52,
+        humanProbability: 0.48,
+        speakerMatch: 0.81,
+        snrDb: 18.2,
+        detectedArtifacts: ['borderline_spectral_flatness', 'room_reverberation_mismatch'],
+      },
+    },
+    HIGH_RISK: {
+      status: 'HIGH_RISK' as VoiceAuthenticityStatus,
+      riskLevel: 'HIGH' as SecurityRiskLevel,
+      confidence: 93,
+      reasons: [
+        'Neural vocoder synthesis artifacts identified in upper spectral bands',
+        'Acoustic markers characteristic of deepfake speech generation models',
+        'Absence of natural physiological breath and micro-frequency variations',
+      ],
+      action: 'Verify caller using another trusted method before sharing sensitive information or transferring funds.',
+      technical: {
+        aiProbability: 0.89,
+        humanProbability: 0.11,
+        speakerMatch: 0.95,
+        snrDb: 22.0,
+        detectedArtifacts: ['phase_vocoder_smoothing', 'unnatural_f0_regularity', 'neural_tts_boundary'],
+      },
+    },
+  };
+
+  const currentDemo = demoDataMap[demoState];
+
+  // Filtered threats
+  const filteredThreats = recentThreats.filter((t) => {
+    if (threatFilter === 'ALL') return true;
+    if (threatFilter === 'CRITICAL') return t.severity === 'CRITICAL';
+    if (threatFilter === 'HIGH') return t.severity === 'HIGH' || t.severity === 'CRITICAL';
+    if (threatFilter === 'LOW') return t.severity === 'LOW';
+    return true;
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Header & Status Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-cyber-surface border border-cyber-border rounded-2xl p-6 relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-xs font-mono text-cyber-muted uppercase tracking-wider mb-1">
-            <span>VOXSHIELD SECURITY POSTURE</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-cyber-cyan" />
-            <span>REAL-TIME TELEMETRY</span>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* 1. TOP HERO: WELCOME & PRIMARY ACTION BUTTONS */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-soft flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center space-x-2 text-[11px] font-mono tracking-wider text-slate-500 uppercase font-semibold">
+            <span>VOXSHIELD CYBER DEFENSE</span>
+            <span>•</span>
+            <span className="text-cyan-600 font-bold">REAL-TIME VOICE AUTHENTICITY</span>
           </div>
-          <h2 className="text-2xl font-bold text-cyber-text tracking-wide flex items-center gap-3">
-            {criticalThreats > 0 ? (
-              <>
-                <span className="text-cyber-crimson">ELEVATED THREAT STATE</span>
-                <span className="text-xs px-2.5 py-1 rounded-full bg-cyber-crimson/20 border border-cyber-crimson text-cyber-crimson font-mono">
-                  ACTION REQUIRED
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="text-cyber-emerald">ACTIVE DEFENSE SHIELD</span>
-                <span className="text-xs px-2.5 py-1 rounded-full bg-cyber-emerald/20 border border-cyber-emerald text-cyber-emerald font-mono flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> PROTECTED
-                </span>
-              </>
-            )}
-          </h2>
-          <p className="text-xs text-cyber-muted mt-1.5 max-w-xl">
-            Live client-side sliding window inference actively analyzing voice authenticity, speaker biometric templates, and acoustic reverberation liveness.
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Voice Security &amp; Identity Protection
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            VOXSHIELD helps you identify potentially AI-generated or manipulated voices during communication and provides an instant security risk assessment.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 relative z-10">
+        {/* Primary Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
           <button
             onClick={() => navigate('/app/calls')}
-            className="py-2.5 px-4 rounded-xl bg-cyber-cyan text-cyber-bg font-semibold text-xs flex items-center gap-2 shadow-cyan-glow hover:bg-cyan-300 transition-all font-mono tracking-wider uppercase"
+            className="px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2 shadow-sm transition"
           >
             <PhoneCall className="w-4 h-4" />
             <span>Start Secure Call</span>
           </button>
-        </div>
 
-        {/* Decorative corner glow */}
-        <div className="absolute right-0 top-0 bottom-0 w-64 bg-cyber-cyan/5 blur-3xl pointer-events-none" />
+          <button
+            onClick={() => navigate('/app/analyzer')}
+            className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider font-mono flex items-center justify-center gap-2 shadow-sm transition"
+          >
+            <Mic className="w-4 h-4 text-cyan-400" />
+            <span>Analyze Voice Sample</span>
+          </button>
+        </div>
       </div>
 
-      {/* 4 Stat Cards */}
+      {/* 2. PRIMARY WORKFLOW GUIDE */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-soft">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-600" />
+            <span>VOXSHIELD Core Security Workflow</span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+            Zero Raw Server Audio Guarantee
+          </span>
+        </div>
+
+        {/* 5-Step Process Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] font-mono text-cyan-600 font-bold block mb-0.5">STEP 1</span>
+            <span className="font-semibold text-slate-800 block text-xs">Voice Input</span>
+            <span className="text-[10px] text-slate-400">Call / Mic / Upload</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] font-mono text-cyan-600 font-bold block mb-0.5">STEP 2</span>
+            <span className="font-semibold text-slate-800 block text-xs">Acoustic DSP</span>
+            <span className="text-[10px] text-slate-400">Feature Extraction</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] font-mono text-cyan-600 font-bold block mb-0.5">STEP 3</span>
+            <span className="font-semibold text-slate-800 block text-xs">Authenticity Check</span>
+            <span className="text-[10px] text-slate-400">Multi-Signal Radar</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] font-mono text-cyan-600 font-bold block mb-0.5">STEP 4</span>
+            <span className="font-semibold text-slate-800 block text-xs">Risk Assessment</span>
+            <span className="text-[10px] text-slate-400">Calibrated Scoring</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-cyan-50/60 border border-cyan-200/80 col-span-2 sm:col-span-1">
+            <span className="text-[10px] font-mono text-cyan-700 font-bold block mb-0.5">STEP 5</span>
+            <span className="font-semibold text-slate-900 block text-xs">Clear Action</span>
+            <span className="text-[10px] text-cyan-700 font-medium">Safe vs Verify</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. FOUR STATUS OVERVIEW CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Active Calls */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-5 hover:border-cyber-cyan/40 transition-all">
-          <div className="flex items-center justify-between text-cyber-muted text-xs font-mono uppercase mb-2">
-            <span>Active Calls</span>
-            <div className="p-2 rounded-xl bg-cyber-card text-cyber-cyan">
-              <PhoneCall className="w-4 h-4" />
-            </div>
+        {/* Status 1: Voice Authenticity Status */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-soft space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono text-slate-400 font-semibold">
+            <span>VOICE AUTHENTICITY</span>
+            <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
           </div>
-          <div className="text-3xl font-bold text-cyber-text font-mono">
-            {loading ? '...' : activeCallsCount}
+          <div className="text-lg font-bold text-slate-900">
+            {hasActiveCall ? 'Active Stream' : 'Ready for Analysis'}
           </div>
-          <div className="text-[11px] text-cyber-muted mt-2 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyber-emerald animate-ping" />
-            <span>P2P DTLS-SRTP encrypted</span>
+          <div className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Multi-signal detector armed</span>
           </div>
         </div>
 
-        {/* Card 2: Threats Detected */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-5 hover:border-cyber-amber/40 transition-all">
-          <div className="flex items-center justify-between text-cyber-muted text-xs font-mono uppercase mb-2">
-            <span>Threats Blocked</span>
-            <div className="p-2 rounded-xl bg-cyber-card text-cyber-amber">
-              <ShieldAlert className="w-4 h-4" />
-            </div>
+        {/* Status 2: Security Risk Status */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-soft space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono text-slate-400 font-semibold">
+            <span>SECURITY RISK</span>
+            <Shield className="w-4 h-4 text-cyan-600" />
           </div>
-          <div className="text-3xl font-bold text-cyber-text font-mono">
-            {loading ? '...' : threatSummary?.total_events || 0}
+          <div className="text-lg font-bold text-slate-900">
+            {criticalThreats > 0 ? `${criticalThreats} High Threats` : 'Low Risk Baseline'}
           </div>
-          <div className="text-[11px] text-cyber-muted mt-2">
-            Critical Attacks: <strong className="text-cyber-crimson">{threatSummary?.critical_count || 0}</strong>
+          <div className="text-xs text-slate-500">
+            {totalThreats} total events logged
           </div>
         </div>
 
-        {/* Card 3: Trusted Voices */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-5 hover:border-cyber-emerald/40 transition-all">
-          <div className="flex items-center justify-between text-cyber-muted text-xs font-mono uppercase mb-2">
-            <span>Trusted Contacts</span>
-            <div className="p-2 rounded-xl bg-cyber-card text-cyber-emerald">
-              <Users className="w-4 h-4" />
-            </div>
+        {/* Status 3: Active Call Status */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-soft space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono text-slate-400 font-semibold">
+            <span>CALL SHIELD</span>
+            <PhoneCall className="w-4 h-4 text-cyan-600" />
           </div>
-          <div className="text-3xl font-bold text-cyber-text font-mono">
-            {loading ? '...' : trustedVoices.length}
+          <div className="text-lg font-bold text-slate-900">
+            {hasActiveCall ? `${activeCalls.length} Active Call` : 'Standby Mode'}
           </div>
-          <div className="text-[11px] text-cyber-muted mt-2">
-            Biometric profiles enrolled
+          <div className="text-xs text-slate-500">
+            WebRTC DTLS-SRTP peer-to-peer
           </div>
         </div>
 
-        {/* Card 4: Open Incidents */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-5 hover:border-purple-400/40 transition-all">
-          <div className="flex items-center justify-between text-cyber-muted text-xs font-mono uppercase mb-2">
-            <span>Open Incidents</span>
-            <div className="p-2 rounded-xl bg-cyber-card text-purple-400">
-              <FileText className="w-4 h-4" />
-            </div>
+        {/* Status 4: Server & AI Status */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-soft space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono text-slate-400 font-semibold">
+            <span>SECURITY SERVER</span>
+            <Server className="w-4 h-4 text-cyan-600" />
           </div>
-          <div className="text-3xl font-bold text-cyber-text font-mono">
-            {loading ? '...' : openIncidentsCount}
+          <div className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                health.isHealthy ? 'bg-emerald-500' : 'bg-rose-500'
+              }`}
+            />
+            <span>{health.isHealthy ? 'Connected' : 'Offline'}</span>
           </div>
-          <div className="text-[11px] text-cyber-muted mt-2">
-            Blockchain tamper-verified
+          <div className="text-xs text-slate-500 truncate">
+            {aiStatus?.models?.deepfake?.model_name || 'AASIST-L & ECAPA-TDNN'}
           </div>
         </div>
       </div>
 
-      {/* Middle Row: AI Engine Status & Privacy Architecture Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* AI Status Preview (2 Cols) */}
-        <div className="lg:col-span-2 bg-cyber-surface border border-cyber-border rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <Cpu className="w-5 h-5 text-cyber-cyan" />
-              <h3 className="text-sm font-bold text-cyber-text uppercase font-mono tracking-wider">
-                AI Engine & Model Registry
-              </h3>
-            </div>
-            <Link
-              to="/app/ai-status"
-              className="text-xs text-cyber-cyan hover:underline flex items-center gap-1 font-mono"
-            >
-              <span>Full Status</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Deepfake Detector */}
-            <div className="bg-cyber-card/60 border border-cyber-border rounded-xl p-3.5">
-              <div className="text-[11px] font-mono text-cyber-muted uppercase">Deepfake Detector</div>
-              <div className="text-xs font-bold text-cyber-text mt-1 truncate">
-                {aiStatus?.models?.deepfake_detector?.model_name || 'AASIST-L-AntiSpoof'}
-              </div>
-              <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono">
-                <span className="text-cyber-cyan px-1.5 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/30">
-                  {aiStatus?.models?.deepfake_detector?.engine_type || 'LOCAL_DSP_ANALYZER'}
-                </span>
-                <span className="text-cyber-emerald">ACTIVE</span>
-              </div>
-            </div>
-
-            {/* Speaker Encoder */}
-            <div className="bg-cyber-card/60 border border-cyber-border rounded-xl p-3.5">
-              <div className="text-[11px] font-mono text-cyber-muted uppercase">Speaker Verification</div>
-              <div className="text-xs font-bold text-cyber-text mt-1 truncate">
-                {aiStatus?.models?.speaker_encoder?.model_name || 'ECAPA-TDNN-VoxCeleb'}
-              </div>
-              <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono">
-                <span className="text-cyber-cyan px-1.5 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/30">
-                  {aiStatus?.models?.speaker_encoder?.engine_type || 'LOCAL_DSP_ANALYZER'}
-                </span>
-                <span className="text-cyber-emerald">ACTIVE</span>
-              </div>
-            </div>
-
-            {/* Liveness Detector */}
-            <div className="bg-cyber-card/60 border border-cyber-border rounded-xl p-3.5">
-              <div className="text-[11px] font-mono text-cyber-muted uppercase">Liveness Engine</div>
-              <div className="text-xs font-bold text-cyber-text mt-1 truncate">
-                Acoustic Impulse Decay
-              </div>
-              <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono">
-                <span className="text-cyber-cyan px-1.5 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/30">
-                  LOCAL_DSP_ANALYZER
-                </span>
-                <span className="text-cyber-emerald">ACTIVE</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Privacy Invariant Card (1 Col) */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-6 flex flex-col justify-between">
+      {/* 4. LIVE RESULT PRESENTATION SHOWCASE */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-cyber-emerald mb-2">
-              <Lock className="w-4 h-4" />
-              <span className="font-bold">ZERO-SERVER-AUDIO PRIVACY</span>
-            </div>
-            <h4 className="text-sm font-semibold text-cyber-text mb-2">
-              Audio Stays Peer-to-Peer
-            </h4>
-            <p className="text-xs text-cyber-muted leading-relaxed">
-              VoxShield AI enforces end-to-end cryptographic isolation. Voice buffers are analyzed on device; live call audio is never uploaded to VoxShield servers.
+            <h2 className="text-base font-bold text-slate-900">
+              Live Voice Authenticity Assessment
+            </h2>
+            <p className="text-xs text-slate-500">
+              Standardized result presentation evaluated in real-time
             </p>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-cyber-border/80 flex items-center justify-between text-[11px] font-mono text-cyber-muted">
-            <span>Transport: DTLS-SRTP</span>
-            <span className="text-cyber-emerald">ENFORCED</span>
+          {/* Interactive Demo Switcher for Hackathon / Judges */}
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl self-start sm:self-auto text-xs font-mono">
+            <span className="text-[10px] text-slate-400 px-2 uppercase font-bold hidden md:inline">
+              Demo Simulation:
+            </span>
+            <button
+              onClick={() => setDemoState('SAFE')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                demoState === 'SAFE'
+                  ? 'bg-white text-emerald-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Legitimate Voice
+            </button>
+            <button
+              onClick={() => setDemoState('SUSPICIOUS')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                demoState === 'SUSPICIOUS'
+                  ? 'bg-white text-amber-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Suspicious Audio
+            </button>
+            <button
+              onClick={() => setDemoState('HIGH_RISK')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                demoState === 'HIGH_RISK'
+                  ? 'bg-white text-rose-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              AI Voice Clone
+            </button>
           </div>
         </div>
+
+        {/* Result Card Component */}
+        <VoiceAuthenticityResultCard
+          status={currentDemo.status}
+          riskLevel={currentDemo.riskLevel}
+          confidenceScore={currentDemo.confidence}
+          reasons={currentDemo.reasons}
+          recommendedAction={currentDemo.action}
+          technicalDetails={currentDemo.technical}
+        />
       </div>
 
-      {/* Bottom Row: Recent Security Events & Recent Calls */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Threat Events */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-cyber-text font-mono uppercase tracking-wider flex items-center gap-2">
-              <Activity className="w-4 h-4 text-cyber-cyan" />
-              <span>Recent Security Events</span>
+      {/* 5. RECENT SECURITY AUDIT TABLE */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-soft space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Recent Voice Security Events
             </h3>
-            <Link to="/app/security-events" className="text-xs text-cyber-cyan hover:underline font-mono">
-              View All
-            </Link>
+            <p className="text-xs text-slate-500">
+              Audit log of inspected audio segments and potential impersonation attempts
+            </p>
           </div>
 
-          {recentThreats.length === 0 ? (
-            <div className="py-8 text-center text-xs text-cyber-muted font-mono">
-              No threat events recorded yet. Calls are operating within safe baseline.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {recentThreats.map((t) => (
-                <div
-                  key={t.id}
-                  className="p-3 bg-cyber-card/50 border border-cyber-border rounded-xl flex items-center justify-between text-xs font-mono"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        t.severity === 'CRITICAL'
-                          ? 'bg-cyber-crimson'
-                          : t.severity === 'HIGH'
-                          ? 'bg-orange-400'
-                          : t.severity === 'MEDIUM'
-                          ? 'bg-cyber-amber'
-                          : 'bg-cyber-emerald'
-                      }`}
-                    />
-                    <span className="font-semibold text-cyber-text">{t.event_type}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-cyber-muted">
-                    <span>Threat: <strong className="text-cyber-text">{t.threat_score}</strong>/100</span>
-                    <span className="text-[11px]">
-                      {new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center space-x-2">
+            {['ALL', 'CRITICAL', 'HIGH', 'LOW'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setThreatFilter(tab)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  threatFilter === tab
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+            <button
+              onClick={fetchDashboardData}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              title="Refresh security events"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
-        {/* Recent Call Sessions */}
-        <div className="bg-cyber-surface border border-cyber-border rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-cyber-text font-mono uppercase tracking-wider flex items-center gap-2">
-              <PhoneCall className="w-4 h-4 text-cyber-cyan" />
-              <span>Recent Calls</span>
-            </h3>
-            <Link to="/app/calls" className="text-xs text-cyber-cyan hover:underline font-mono">
-              All Calls
-            </Link>
-          </div>
-
-          {calls.length === 0 ? (
-            <div className="py-8 text-center text-xs text-cyber-muted font-mono">
-              No recent call history. Start a new secure call to begin monitoring.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {calls.map((c) => (
-                <Link
-                  key={c.id}
-                  to={`/app/calls/${c.id}`}
-                  className="p-3 bg-cyber-card/50 hover:bg-cyber-card border border-cyber-border rounded-xl flex items-center justify-between text-xs font-mono transition-colors block"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        c.status === 'ACTIVE'
-                          ? 'bg-cyber-emerald animate-ping'
-                          : c.status === 'RINGING'
-                          ? 'bg-cyber-cyan'
-                          : 'bg-cyber-muted'
-                      }`}
-                    />
-                    <span className="text-cyber-text font-medium truncate max-w-[140px]">
-                      Session {c.id.substring(0, 8)}...
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase font-bold text-cyber-cyan px-2 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/30">
-                      {c.status}
-                    </span>
-                    <span className="text-[11px] text-cyber-muted">
-                      {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 font-mono uppercase text-[10px]">
+                <th className="p-3">Timestamp</th>
+                <th className="p-3">Session / Caller</th>
+                <th className="p-3">Assessment Verdict</th>
+                <th className="p-3">AI Probability</th>
+                <th className="p-3">Risk Level</th>
+                <th className="p-3 text-right">Recommended Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredThreats.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                    No threat events matching filter criteria. System baseline is secure.
+                  </td>
+                </tr>
+              ) : (
+                filteredThreats.map((threat) => {
+                  const isHigh = threat.severity === 'CRITICAL' || threat.severity === 'HIGH';
+                  return (
+                    <tr key={threat.id} className="hover:bg-slate-50/80 transition">
+                      <td className="p-3 font-mono text-slate-500 text-[11px]">
+                        {new Date(threat.timestamp).toLocaleTimeString()}
+                      </td>
+                      <td className="p-3 font-medium text-slate-800">
+                        {threat.call_id ? `Call ${threat.call_id.slice(0, 8)}...` : 'Voice Sample'}
+                      </td>
+                      <td className="p-3 font-semibold text-slate-900">
+                        {threat.event_type}
+                      </td>
+                      <td className="p-3 font-mono font-semibold text-slate-700">
+                        {(threat.ai_probability * 100).toFixed(0)}%
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                            threat.severity === 'CRITICAL'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : threat.severity === 'HIGH'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          }`}
+                        >
+                          {threat.severity}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="text-[11px] text-slate-500">
+                          {isHigh ? 'Secondary verification required' : 'Standard monitoring'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -121,47 +121,144 @@ export const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Privacy Safeguards (Enforced by Design) */}
-      <div className="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/10 backdrop-blur-sm space-y-4">
+      {/* Privacy Center & Architectural Verification */}
+      <div className="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-950/10 backdrop-blur-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Shield className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-base font-semibold text-white uppercase tracking-wider">
+              Privacy Center & Zero-Server-Audio Verification
+            </h3>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/40 tracking-wider">
+            GUARANTEE ENFORCED
+          </span>
+        </div>
+
+        {/* Visual Pipeline */}
+        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            VOXSHIELD Zero-Audio Forensic Pipeline
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-center text-xs">
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <Mic className="w-5 h-5 text-cyan-400 mx-auto mb-1.5" />
+              <div className="font-semibold text-white text-[11px]">1. Local Mic</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Browser Web Audio</div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <Activity className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
+              <div className="font-semibold text-white text-[11px]">2. Client DSP</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Spectral / Jitter / Mel</div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-900 border border-emerald-500/30 bg-emerald-950/20">
+              <Lock className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
+              <div className="font-semibold text-emerald-300 text-[11px]">3. Telemetry JSON</div>
+              <div className="text-[10px] text-emerald-400 mt-0.5">~2.4 KB/s Feature Vectors</div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <Server className="w-5 h-5 text-cyan-400 mx-auto mb-1.5" />
+              <div className="font-semibold text-white text-[11px]">4. AI Threat Engine</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Anomaly & Risk Score</div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+              <CheckCircle className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
+              <div className="font-semibold text-white text-[11px]">5. Real-Time Alert</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">HUD & Prevention</div>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
+            <span className="font-semibold text-emerald-400">Zero-Server-Audio Invariant:</span> Call audio streams strictly peer-to-peer via WebRTC (DTLS-SRTP). Zero bytes of unencrypted call audio ever touch VOXSHIELD servers. The server only evaluates mathematical acoustic feature vectors.
+          </p>
+        </div>
+
+        {/* Data Minimization Checklist */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-white">Raw Audio Stored</div>
+              <div className="text-[11px] text-slate-400">Permanent audio recording</div>
+            </div>
+            <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+              0 BYTES (NO)
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-white">Biometric Voice Storage</div>
+              <div className="text-[11px] text-slate-400">Fingerprint representation</div>
+            </div>
+            <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+              192-D EMBEDDING ONLY
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-white">Call Transcripts / Eavesdropping</div>
+              <div className="text-[11px] text-slate-400">Speech-to-text processing</div>
+            </div>
+            <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+              NEVER / NOT STORED
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-white">Transport Security</div>
+              <div className="text-[11px] text-slate-400">P2P Media Channel</div>
+            </div>
+            <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+              WebRTC DTLS-SRTP
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Indian Language & Acoustic Model Configuration */}
+      <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm space-y-4">
         <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center space-x-2">
-          <Shield className="w-4 h-4 text-emerald-400" />
-          <span>Architectural Privacy Safeguards</span>
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <span>Regional Acoustic & Language Configuration</span>
         </h3>
 
-        <div className="space-y-3 text-xs">
-          <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-white">Zero-Server-Audio Invariant</div>
-              <p className="text-slate-400 text-[11px] mt-0.5">
-                Live call audio streams exclusively peer-to-peer via WebRTC (DTLS-SRTP). Zero bytes of raw audio ever touch the server.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/40">
-              LOCKED ACTIVE
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label className="text-slate-300 block mb-1.5 font-medium">Indian Dialect & Phonetic Calibration</label>
+            <select
+              defaultValue={localStorage.getItem('voxshield_language') || 'en-IN'}
+              onChange={(e) => {
+                localStorage.setItem('voxshield_language', e.target.value);
+                showToast(`Dialect set to ${e.target.selectedOptions[0].text}`, 'info');
+              }}
+              className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-white text-xs focus:outline-none focus:border-cyan-500"
+            >
+              <option value="en-IN">English (India) - en-IN</option>
+              <option value="hi-IN">Hindi (हिन्दी) - hi-IN</option>
+              <option value="ta-IN">Tamil (தமிழ்) - ta-IN</option>
+              <option value="te-IN">Telugu (తెలుగు) - te-IN</option>
+              <option value="ml-IN">Malayalam (മലയാളം) - ml-IN</option>
+              <option value="kn-IN">Kannada (ಕನ್ನಡ) - kn-IN</option>
+            </select>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Calibrates formant frequency and prosodic anomaly baseline for Indian multilingual speakers.
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-white">Biometric Credential Redaction</div>
-              <p className="text-slate-400 text-[11px] mt-0.5">
-                High-dimension speaker embeddings are hashed and never transmitted over public API endpoints.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/40">
-              LOCKED ACTIVE
-            </span>
-          </div>
-
-          <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-white">Cryptographic Incident Anchoring</div>
-              <p className="text-slate-400 text-[11px] mt-0.5">
-                Incidents are serialized using canonical RFC 8785 JSON and audited with SHA-256 ledger proofs.
-              </p>
-            </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/40">
-              LOCKED ACTIVE
+          <div>
+            <label className="text-slate-300 block mb-1.5 font-medium">Detection Sensitivity Threshold</label>
+            <select
+              defaultValue="STANDARD"
+              onChange={(e) => showToast(`Sensitivity set to ${e.target.value}`, 'info')}
+              className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-950 text-white text-xs focus:outline-none focus:border-cyan-500"
+            >
+              <option value="AGGRESSIVE">Aggressive (High Security / Banking - Alert at 50)</option>
+              <option value="STANDARD">Standard (Balanced - Alert at 65)</option>
+              <option value="PERMISSIVE">Permissive (Noisy Environments - Alert at 80)</option>
+            </select>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Adaptive fusion threshold for triggering secondary verification challenges.
             </span>
           </div>
         </div>

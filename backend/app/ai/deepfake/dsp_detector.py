@@ -47,35 +47,80 @@ class DSPDeepfakeDetector(DeepfakeDetector):
         # 1. Extract physical acoustic features via DSP
         waveform, sr = audio_feature_extractor.extract_waveform(audio_bytes, target_sr=sample_rate)
         spec_feats = audio_feature_extractor.extract_spectral_features(waveform, sr=sr)
+        pitch_feats = audio_feature_extractor.extract_pitch_f0(waveform, sr=sr)
+        subband = audio_feature_extractor.extract_subband_energy(waveform, sr=sr)
         mfcc = audio_feature_extractor.extract_mfcc(waveform, sr=sr, n_mfcc=13)
 
         flatness = spec_feats.get("spectral_flatness", 0.0)
         zcr = spec_feats.get("zero_crossing_rate", 0.0)
+        spectral_flux = spec_feats.get("spectral_flux", 0.0)
+        rolloff_95 = spec_feats.get("spectral_rolloff_95", 0.0)
+
+        f0_jitter = pitch_feats.get("f0_jitter", 0.0)
+        f0_std = pitch_feats.get("f0_std", 0.0)
+        voiced_ratio = pitch_feats.get("voiced_ratio", 0.0)
+        pitch_jump_rate = pitch_feats.get("pitch_jump_rate", 0.0)
+
+        high_ratio = subband.get("high_ratio", 0.1)
         mfcc_var = float(np.var(mfcc)) if mfcc.size > 0 else 1.0
 
-        # Physical acoustic heuristic:
-        # Vocoders exhibit elevated spectral flatness and lower dynamic MFCC variability
-        synthetic_index = (flatness * 1.8) + (zcr * 0.8) + (1.0 / (mfcc_var + 0.1) * 0.05)
-        raw_prob = 1.0 / (1.0 + np.exp(-(synthetic_index - 1.2) * 3.0))
-        ai_prob = round(float(min(1.0, max(0.0, raw_prob))), 4)
+        artifacts = []
+        synthetic_score = 0.0
+
+        # Feature A: Pitch Micro-Jitter (Natural human speech has 0.5%–3.5% jitter; synthetic TTS has < 0.2% or erratic jumps)
+        if voiced_ratio >= 0.25:
+            if f0_jitter < 0.003 and f0_std < 10.0:
+                artifacts.append("unnatural_pitch_rigidity")
+                synthetic_score += 0.35
+            elif f0_jitter < 0.005:
+                artifacts.append("compressed_intonation_contour")
+                synthetic_score += 0.18
+            if pitch_jump_rate > 0.18:
+                artifacts.append("unphysiological_pitch_discontinuity")
+                synthetic_score += 0.25
+
+        # Feature B: Spectral Flux & Diffusion Smoothing (Diffusion/GAN models exhibit unnatural inter-frame spectral uniformity)
+        if spectral_flux > 0.0:
+            if spectral_flux < 0.08:
+                artifacts.append("diffusion_spectral_smoothing")
+                synthetic_score += 0.30
+            elif spectral_flux < 0.14:
+                artifacts.append("synthetic_spectral_flux_uniformity")
+                synthetic_score += 0.15
+
+        # Feature C: High-Frequency Band Rolloff & Vocoder Energy Dispersion
+        if high_ratio > 0.45:
+            artifacts.append("high_frequency_harmonic_leakage")
+            synthetic_score += 0.28
+        elif high_ratio < 0.02 and len(waveform) > int(0.8 * sr):
+            artifacts.append("abnormal_brickwall_cutoff")
+            synthetic_score += 0.20
+
+        # Feature D: Vocoder Phase Dispersion / Aperiodic Flatness
+        if flatness > 0.28 and zcr > 0.18:
+            artifacts.append("vocoder_phase_discontinuity")
+            synthetic_score += 0.30
+        elif flatness > 0.20:
+            artifacts.append("unnatural_spectral_flatness")
+            synthetic_score += 0.15
+
+        # Feature E: Cepstral Dynamic Range
+        if mfcc_var < 0.85:
+            synthetic_score += 0.12
+
+        # Synthetic probability calibration
+        ai_prob = round(float(min(0.98, max(0.02, synthetic_score))), 4)
         human_prob = round(1.0 - ai_prob, 4)
 
-        artifacts = []
-        if flatness > 0.45:
-            artifacts.append("unnatural_spectral_flatness")
-        if zcr > 0.35:
-            artifacts.append("high_frequency_phase_jitter")
-        if ai_prob >= 0.70:
-            artifacts.append("vocoder_harmonic_discontinuity")
-
-        if ai_prob >= 0.70:
+        if ai_prob >= 0.65:
             classification = "LIKELY_AI_GENERATED"
-        elif ai_prob >= 0.40:
+        elif ai_prob >= 0.38:
             classification = "SUSPICIOUS"
         else:
             classification = "LIKELY_HUMAN"
 
         elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+        confidence = round(0.70 + abs(ai_prob - 0.5) * 0.55, 4)
 
         return DeepfakeDetectionResult(
             analysis_id=analysis_id,
@@ -83,8 +128,8 @@ class DSPDeepfakeDetector(DeepfakeDetector):
             ai_probability=ai_prob,
             human_probability=human_prob,
             speaker_match_score=round(max(0.0, 1.0 - ai_prob * 0.7), 4),
-            liveness_score=round(max(0.05, 1.0 - flatness), 4),
-            confidence=0.88,
+            liveness_score=round(max(0.05, 1.0 - (flatness * 1.2)), 4),
+            confidence=confidence,
             engine_type=self.engine_type,
             model_name=self.model_name,
             model_version=self.model_version,

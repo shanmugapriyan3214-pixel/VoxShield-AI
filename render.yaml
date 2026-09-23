@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: voxshield-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: AI_MODE
+        value: local
+      - key: AI_BACKEND
+        value: pretrained
+      - key: BACKEND_CORS_ORIGINS
+        value: "http://localhost,https://localhost,capacitor://localhost"

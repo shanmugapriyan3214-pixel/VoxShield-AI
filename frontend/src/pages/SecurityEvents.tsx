@@ -64,14 +64,14 @@ export const SecurityEvents: React.FC = () => {
   const getSeverityBadge = (severity: string) => {
     switch (severity.toUpperCase()) {
       case 'CRITICAL':
-        return 'bg-crimson-500/10 text-crimson-400 border-crimson-500/30';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'HIGH':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'MEDIUM':
-        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30';
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       case 'LOW':
       default:
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
   };
 
@@ -88,41 +88,48 @@ export const SecurityEvents: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-crimson-500/10 border border-crimson-500/30 text-crimson-400">
-            <ShieldAlert className="w-6 h-6" />
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 text-[11px] font-mono tracking-wider text-slate-500 uppercase font-semibold mb-1">
+            <span>FORENSIC AUDIT TRAIL</span>
+            <span>•</span>
+            <span className="text-cyan-600 font-bold">ACOUSTIC INCIDENTS</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Security Telemetry Events</h1>
-            <p className="text-sm text-slate-400">
-              Live audit stream of voice cloning, deepfake indicators, and speaker verification alerts
-            </p>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-600">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Security Telemetry Events</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Live audit stream of voice cloning, deepfake indicators, and speaker verification alerts
+              </p>
+            </div>
           </div>
         </div>
 
         <button
           onClick={fetchEvents}
           disabled={isLoading}
-          className="flex items-center space-x-2 px-3 py-2 rounded-lg border border-slate-700 hover:border-slate-600 bg-slate-800/60 text-slate-300 hover:text-white transition text-sm"
+          className="flex items-center space-x-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 text-slate-700 hover:text-slate-900 transition text-xs font-semibold"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
+          <span>Refresh Feed</span>
         </button>
       </div>
 
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Severity Tabs */}
-        <div className="flex items-center space-x-1 p-1 rounded-lg bg-slate-900 border border-slate-800">
+        <div className="flex items-center space-x-1 p-1 rounded-xl bg-slate-100 border border-slate-200">
           {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
             <button
               key={sev}
               onClick={() => setSeverityFilter(sev)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 severityFilter === sev
-                  ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {sev}
@@ -133,13 +140,13 @@ export const SecurityEvents: React.FC = () => {
         {/* Search */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-sm flex items-center space-x-2">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search event type or call ID..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 text-white text-xs focus:outline-none focus:border-cyan-500 transition"
+              className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 text-xs focus:outline-none focus:border-cyan-500 shadow-soft transition"
             />
           </div>
         </form>
@@ -150,16 +157,16 @@ export const SecurityEvents: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-20 rounded-xl border border-slate-800 bg-slate-900/40 animate-pulse" />
+              <div key={i} className="h-20 rounded-2xl border border-slate-200 bg-white animate-pulse" />
             ))}
           </div>
-          <div className="h-96 rounded-xl border border-slate-800 bg-slate-900/40 animate-pulse" />
+          <div className="h-96 rounded-2xl border border-slate-200 bg-white animate-pulse" />
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="p-12 rounded-2xl border border-dashed border-slate-800 bg-slate-900/20 text-center">
-          <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-white mb-1">No Threat Events Found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+        <div className="p-12 rounded-2xl border border-dashed border-slate-300 bg-white text-center shadow-soft">
+          <CheckCircle className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-slate-900 mb-1">No Threat Events Found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
             No acoustic anomalies or voice cloning events matched the selected filters.
           </p>
         </div>
@@ -173,20 +180,20 @@ export const SecurityEvents: React.FC = () => {
                 <div
                   key={event.id}
                   onClick={() => setSelectedEvent(event)}
-                  className={`p-4 rounded-xl border transition cursor-pointer flex items-center justify-between ${
+                  className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between shadow-soft ${
                     isSelected
-                      ? 'border-cyan-500/60 bg-cyan-950/20 shadow-lg shadow-cyan-950/40'
-                      : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                      ? 'border-cyan-500 bg-cyan-50/40 shadow-soft-lg ring-1 ring-cyan-500'
+                      : 'border-slate-200/90 bg-white hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center space-x-3.5">
                     <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center font-mono font-bold text-xs ${
                         event.threat_score >= 80
-                          ? 'bg-crimson-500/20 text-crimson-400 border border-crimson-500/40'
+                          ? 'bg-red-50 text-red-700 border border-red-200'
                           : event.threat_score >= 50
-                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}
                     >
                       {Math.round(event.threat_score)}
@@ -194,7 +201,7 @@ export const SecurityEvents: React.FC = () => {
 
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-semibold text-white tracking-tight">{event.event_type}</span>
+                        <span className="text-sm font-bold text-slate-900 tracking-tight">{event.event_type}</span>
                         <span
                           className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded-full border ${getSeverityBadge(
                             event.severity
@@ -204,9 +211,9 @@ export const SecurityEvents: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="flex items-center space-x-3 text-xs text-slate-400 mt-1">
+                      <div className="flex items-center space-x-3 text-xs text-slate-500 mt-1">
                         <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-slate-500" />
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
                           <span>{new Date(event.timestamp).toLocaleTimeString()}</span>
                         </span>
                         {event.call_id && (
@@ -218,12 +225,12 @@ export const SecurityEvents: React.FC = () => {
 
                   <div className="flex items-center space-x-3">
                     <div className="text-right hidden sm:block">
-                      <div className="text-xs text-slate-400">AI Prob: {(event.ai_probability * 100).toFixed(1)}%</div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-xs font-mono font-bold text-red-600">P(AI): {(event.ai_probability * 100).toFixed(1)}%</div>
+                      <div className="text-[11px] text-slate-500 font-mono">
                         {event.metadata?.recommended_action || 'CONTINUE_CALL'}
                       </div>
                     </div>
-                    <ChevronRight className={`w-4 h-4 ${isSelected ? 'text-cyan-400' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-4 h-4 ${isSelected ? 'text-cyan-600' : 'text-slate-400'}`} />
                   </div>
                 </div>
               );
@@ -232,8 +239,8 @@ export const SecurityEvents: React.FC = () => {
 
           {/* Event Detail Sidebar */}
           {selectedEvent && (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-5 space-y-5 lg:sticky lg:top-20 h-fit">
-              <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 space-y-5 shadow-soft lg:sticky lg:top-20 h-fit">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div>
                   <span
                     className={`inline-block px-2.5 py-0.5 text-[10px] font-semibold uppercase rounded-full border mb-2 ${getSeverityBadge(
@@ -242,79 +249,79 @@ export const SecurityEvents: React.FC = () => {
                   >
                     {selectedEvent.severity} THREAT
                   </span>
-                  <h3 className="text-lg font-bold text-white">{selectedEvent.event_type}</h3>
-                  <span className="text-xs text-slate-500 font-mono">ID: {selectedEvent.id}</span>
+                  <h3 className="text-base font-bold text-slate-900">{selectedEvent.event_type}</h3>
+                  <span className="text-xs text-slate-400 font-mono">ID: {selectedEvent.id}</span>
                 </div>
               </div>
 
               {/* Gauges */}
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="text-[10px] text-slate-500 font-medium">Threat Score</div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-[10px] text-slate-400 font-medium">Threat Score</div>
                   <div
                     className={`text-lg font-bold font-mono ${
                       selectedEvent.threat_score >= 80
-                        ? 'text-crimson-400'
+                        ? 'text-red-600'
                         : selectedEvent.threat_score >= 50
-                        ? 'text-amber-400'
-                        : 'text-emerald-400'
+                        ? 'text-amber-600'
+                        : 'text-emerald-600'
                     }`}
                   >
                     {Math.round(selectedEvent.threat_score)}
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="text-[10px] text-slate-500 font-medium">AI Clone Prob</div>
-                  <div className="text-lg font-bold font-mono text-cyan-400">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-[10px] text-slate-400 font-medium">AI Clone Prob</div>
+                  <div className="text-lg font-bold font-mono text-cyan-700">
                     {(selectedEvent.ai_probability * 100).toFixed(0)}%
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="text-[10px] text-slate-500 font-medium">Liveness</div>
-                  <div className="text-lg font-bold font-mono text-slate-300">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <div className="text-[10px] text-slate-400 font-medium">Liveness</div>
+                  <div className="text-lg font-bold font-mono text-slate-800">
                     {selectedEvent.liveness_score != null ? `${(selectedEvent.liveness_score * 100).toFixed(0)}%` : 'N/A'}
                   </div>
                 </div>
               </div>
 
               {/* Recommended Action */}
-              <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 space-y-1.5">
-                <div className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center space-x-1.5">
+              <div className="p-3.5 rounded-xl border border-cyan-200 bg-cyan-50/50 space-y-1">
+                <div className="text-[11px] font-semibold text-cyan-800 uppercase tracking-wider flex items-center space-x-1.5">
                   <Activity className="w-3.5 h-3.5" />
                   <span>Recommended Action</span>
                 </div>
-                <div className="text-xs font-mono text-white">
+                <div className="text-xs font-mono font-bold text-cyan-900">
                   {selectedEvent.metadata?.recommended_action || 'CONTINUE_CALL'}
                 </div>
               </div>
 
               {/* Metadata / Raw Flags */}
               <div className="space-y-2">
-                <span className="text-xs font-medium text-slate-400 block">Acoustic Indicators</span>
+                <span className="text-xs font-semibold text-slate-700 block">Acoustic Indicators</span>
                 {selectedEvent.metadata?.anomaly_flags && selectedEvent.metadata.anomaly_flags.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {selectedEvent.metadata.anomaly_flags.map((flag: string, idx: number) => (
                       <span
                         key={idx}
-                        className="px-2 py-0.5 rounded bg-crimson-500/10 border border-crimson-500/30 text-crimson-400 text-[10px] font-mono"
+                        className="px-2 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-[10px] font-mono font-semibold"
                       >
                         {flag}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-500 italic">No anomalies triggered</span>
+                  <span className="text-xs text-slate-400 italic">No anomalies triggered</span>
                 )}
               </div>
 
               {/* Context Links */}
-              <div className="pt-3 border-t border-slate-800 space-y-2">
+              <div className="pt-3 border-t border-slate-100 space-y-2">
                 {selectedEvent.call_id && (
                   <button
                     onClick={() => navigate(`/app/calls/${selectedEvent.call_id}`)}
-                    className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                    className="w-full py-2 px-3 rounded-xl bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-800 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
                   >
                     <span>View Call Session</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -323,9 +330,9 @@ export const SecurityEvents: React.FC = () => {
 
                 <button
                   onClick={() => navigate('/app/incidents')}
-                  className="w-full py-2 px-3 rounded-lg border border-slate-700 hover:border-slate-600 text-slate-300 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
                 >
-                  <FileWarning className="w-3.5 h-3.5" />
+                  <FileWarning className="w-3.5 h-3.5 text-amber-600" />
                   <span>Escalate to Formal Incident</span>
                 </button>
               </div>

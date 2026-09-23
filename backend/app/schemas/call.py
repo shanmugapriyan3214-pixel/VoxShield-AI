@@ -23,6 +23,13 @@ class CallResponse(BaseModel):
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
     created_at: datetime
+    caller_name: Optional[str] = None
+    caller_voxshield_id: Optional[str] = None
+    receiver_name: Optional[str] = None
+    receiver_voxshield_id: Optional[str] = None
+    duration_seconds: Optional[int] = None
+    latest_threat_score: Optional[float] = None
+    latest_severity: Optional[str] = None
 
 
 class CallSecurityEventCreate(BaseModel):
@@ -85,8 +92,13 @@ class SecurityTelemetryReportRequest(BaseModel):
     window_index: Optional[int] = Field(None, ge=0, le=10000000)
     client_timestamp_ms: Optional[int] = None
     detected_artifacts: List[str] = Field(default_factory=list, max_length=20)
+    transaction_type: Optional[str] = Field(None, max_length=100)
+    transaction_amount: Optional[float] = Field(None, ge=0.0)
+    urgency_level: Optional[str] = Field(None, max_length=50)
+    caller_known: Optional[bool] = None
+    language: Optional[str] = Field(None, max_length=20)
 
-    @field_validator("ai_generated_probability", "speaker_match_probability", "liveness_probability", mode="before")
+    @field_validator("ai_generated_probability", "speaker_match_probability", "liveness_probability", "transaction_amount", mode="before")
     @classmethod
     def reject_nan_inf(cls, v: Any) -> Any:
         if v is not None and isinstance(v, (int, float)):
@@ -103,6 +115,9 @@ class SecurityTelemetryResponse(BaseModel):
     indicators: List[str] = Field(default_factory=list)
     call_terminated: bool = False
     event_id: Optional[str] = None
+    context_risk: Optional[float] = None
+    breakdown: Optional[Dict[str, Any]] = None
+    social_engineering_risk: Optional[bool] = False
     timestamp: datetime
 
 

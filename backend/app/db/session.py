@@ -43,9 +43,32 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize all database schema tables."""
+    """Initialize all database schema tables with non-destructive migrations."""
     # Import all models so metadata discovers them
     import app.db.models  # noqa: F401
+    from sqlalchemy import text
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Check if voxshield_id exists in users table
+        try:
+            if "sqlite" in settings.DATABASE_URL:
+                cols_res = await conn.execute(text("PRAGMA table_info(users)"))
+                existing_cols = [row[1] for row in cols_res.fetchall()]
+                if "voxshield_id" not in existing_cols:
+                    await conn.execute(text("ALTER TABLE users ADD COLUMN voxshield_id VARCHAR(20)"))
+                    await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_voxshield_id ON users (voxshield_id)"))
+                # Backfill any null voxshield_ids
+                await conn.execute(
+                    text("UPDATE users SET voxshield_id = 'VS-' || UPPER(SUBSTR(REPLACE(id, '-', ''), 1, 8)) WHERE voxshield_id IS NULL")
+                )
+            else:
+                # PostgreSQL or other dialect
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS voxshield_id VARCHAR(20)"))
+                await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_voxshield_id ON users (voxshield_id)"))
+                await conn.execute(
+                    text("UPDATE users SET voxshield_id = 'VS-' || UPPER(SUBSTR(REPLACE(id, '-', ''), 1, 8)) WHERE voxshield_id IS NULL")
+                )
+        except Exception:
+            # Table might not exist yet or dialect-specific variation; handled gracefully
+            pass

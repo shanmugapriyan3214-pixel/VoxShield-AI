@@ -29,9 +29,13 @@ wheels/
 *.sqlite
 *.sqlite3
 
-# Environment
+# Environment & Secrets
 .env
 .env.local
+.env.*.local
+*.pem
+*.key
+*.pfx
 
 # Testing & Coverage
 .pytest_cache/
@@ -45,12 +49,30 @@ htmlcov/
 .idea/
 .vscode/
 *.swp
+.DS_Store
+Thumbs.db
+
 # Node / Frontend
 node_modules/
 frontend/node_modules/
 frontend/dist/
-# Large binary model weights
-*.onnx
-backend/models/weights/**/*.onnx
-.chrome-*/
 
+# Android & Gradle Generated Files
+.gradle/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/local.properties
+**/android/captures/
+**/android/.externalNativeBuild
+**/android/.cxx/
+*.apk
+*.aar
+
+# Archives
+*.zip
+*.tar.gz
+*.7z
+
+# Browser caches
+.chrome-*/

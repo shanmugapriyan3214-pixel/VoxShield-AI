@@ -84,7 +84,16 @@ async def websocket_signaling_endpoint(
     # Register session
     await signaling_manager.connect(call_id, user.id, websocket)
 
-    # Notify peer of join
+    # Inform newcomer of any peers already waiting in the session
+    existing_peers = await signaling_manager.get_other_peer_ids(call_id, user.id)
+    for peer_id in existing_peers:
+        await websocket.send_json({
+            "type": "peer_connected",
+            "call_id": call_id,
+            "user_id": peer_id,
+        })
+
+    # Notify existing peers that this user has joined
     await signaling_manager.relay_to_peer(
         call_id,
         user.id,

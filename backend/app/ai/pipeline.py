@@ -15,7 +15,10 @@ from app.ai.speaker.comparison import (
 )
 from app.ai.liveness.detector import LocalLivenessDetector
 from app.ai.liveness.mock import MockLivenessDetector
+from app.ai.feature_extraction import audio_feature_extractor
 from app.ai.fusion.threat_fusion import threat_fusion_engine
+from app.ai.fusion.multi_signal_engine import multi_signal_engine
+from app.ai.temporal import temporal_manager
 from app.ai.registry import model_registry
 from app.ai.schemas import DeepfakeDetectionResult
 from app.core.config import settings
@@ -146,10 +149,60 @@ class AIPipeline:
         sample_rate: int = 16000,
         context: Optional[dict] = None,
     ) -> DeepfakeDetectionResult:
-        """Run deepfake detection and liveness analysis on audio bytes."""
+        """Run multi-signal deepfake detection, audio quality check, and liveness analysis."""
+        ctx = context or {}
+        session_id = ctx.get("session_id") or ctx.get("call_id")
+        temporal_prior = None
+
+        if session_id:
+            temporal_buf = temporal_manager.get_or_create(session_id)
+            temporal_prior = temporal_buf._current_smoothed
+
+        # 1. Base detector inference (AASIST-L or DSP fallback)
         result = await self.detector.analyze(audio_bytes, sample_rate=sample_rate, context=context)
+
+        # 2. Liveness & anti-replay analysis
         liveness = await self.liveness_detector.analyze_liveness(audio_bytes, sample_rate=sample_rate)
+
+        # 3. Waveform decoding for multi-signal DSP feature verification
+        waveform, sr = audio_feature_extractor.extract_waveform(audio_bytes, target_sr=sample_rate)
+
+        # 4. Multi-Signal Score Fusion
+        verdict = multi_signal_engine.evaluate(
+            waveform=waveform,
+            sr=sr,
+            model_ai_prob=result.ai_probability,
+            model_confidence=result.confidence,
+            temporal_prior=temporal_prior,
+        )
+
+        # 5. Populate enriched multi-signal attributes
+        result.classification = verdict.classification
+        result.ai_probability = verdict.ai_probability
+        result.human_probability = verdict.human_probability
+        result.confidence = verdict.confidence
+        result.voice_trust_score = verdict.voice_trust_score
+        result.audio_quality = verdict.audio_quality
+        result.signals = verdict.signals
+        result.replay_suspicion = verdict.replay_suspicion
+        result.detected_artifacts = list(set(result.detected_artifacts + verdict.detected_artifacts))
+        result.evidence_summary = verdict.evidence_summary
         result.liveness_score = liveness.liveness_score
+        result.diagnostics = verdict.diagnostics
+        result.disclaimer = (
+            "Probabilistic assessment based on acoustic, spectral, prosodic, and neural graph feature extraction. "
+            "Cannot guarantee 100% certainty under heavy compression or adversarial conditions."
+        )
+
+        # 6. Update temporal buffer if in live session
+        if session_id:
+            temporal_state = temporal_buf.update(
+                raw_ai_prob=verdict.ai_probability,
+                confidence=verdict.confidence,
+                artifacts=verdict.detected_artifacts,
+            )
+            result.signals["temporal_consistency"] = temporal_state.trend
+
         return result
 
     def get_status(self) -> Dict[str, Any]:

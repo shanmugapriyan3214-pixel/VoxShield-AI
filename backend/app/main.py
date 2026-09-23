@@ -10,9 +10,11 @@ from app.api.v1 import (
     analysis,
     auth,
     calls,
+    contacts,
     demo,
     health,
     incidents,
+    security,
     signaling,
     threats,
     trusted_voices,
@@ -91,11 +93,13 @@ def create_application() -> FastAPI:
     # 5. Assemble API v1 Routers
     app.include_router(auth.router, prefix=settings.API_V1_STR)
     app.include_router(users.router, prefix=settings.API_V1_STR)
+    app.include_router(contacts.router, prefix=settings.API_V1_STR)
     app.include_router(voices.router, prefix=settings.API_V1_STR)
     app.include_router(trusted_voices.router, prefix=settings.API_V1_STR)
     app.include_router(analysis.router, prefix=settings.API_V1_STR)
     app.include_router(ai.router, prefix=settings.API_V1_STR)
     app.include_router(calls.router, prefix=settings.API_V1_STR)
+    app.include_router(security.router, prefix=settings.API_V1_STR)
     app.include_router(signaling.router, prefix=settings.API_V1_STR)
     app.include_router(threats.router, prefix=settings.API_V1_STR)
     app.include_router(incidents.router, prefix=settings.API_V1_STR)

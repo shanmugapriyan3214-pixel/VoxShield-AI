@@ -40,11 +40,13 @@ class AuthService:
 
         # Hash password with Argon2id
         password_hash = get_password_hash(data.password)
+        voxshield_id = f"VS-{uuid.uuid4().hex[:8].upper()}"
 
         new_user = User(
             email=data.email.lower().strip(),
             username=data.username.strip(),
             display_name=data.display_name.strip(),
+            voxshield_id=voxshield_id,
             password_hash=password_hash,
             is_verified=False,
             is_active=True,

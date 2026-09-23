@@ -59,8 +59,15 @@ class SignalingSessionManager:
             except Exception as e:
                 logger.warning(f"Broadcast signaling error in call {call_id}: {e}")
 
+    async def get_other_peer_ids(self, call_id: str, current_user_id: str) -> List[str]:
+        """Return IDs of other participants currently connected to the call session."""
+        async with self._lock:
+            peers = self._sessions.get(call_id, {})
+            return [uid for uid in peers.keys() if uid != current_user_id]
+
     def get_connected_user_ids(self, call_id: str) -> List[str]:
         return list(self._sessions.get(call_id, {}).keys())
 
 
 signaling_manager = SignalingSessionManager()
+

@@ -17,6 +17,7 @@ class ThreatAssessment(BaseModel):
     recommendation: str
     indicators: List[str] = Field(default_factory=list)
     breakdown: Optional[dict] = None
+    social_engineering_risk: bool = Field(default=False, description="Whether potential social-engineering patterns were detected")
 
 
 class ThreatFusionEngine(BaseAIComponent):
@@ -124,8 +125,27 @@ class ThreatFusionEngine(BaseAIComponent):
             modifier += 12.0
             indicators.append("Acoustic impulse response indicates loudspeaker replay")
 
+        # Social engineering attack patterns
+        social_engineering_patterns = {
+            "urgent_money_request": "Urgent financial transfer request",
+            "otp_request": "One-time passcode (OTP) verification solicitation",
+            "password_request": "Credential / password disclosure inquiry",
+            "banking_credentials": "Bank account or credit card information request",
+            "secrecy_demand": "Urgent insistence on confidentiality and secrecy",
+            "impersonation_context": "Unverified authority or organization impersonation context",
+            "unusual_speaker_behavior": "Unusual conversational urgency or pressure tactics",
+            "voice_anomaly": "Acoustic distortion or synthetic prosodic pacing",
+        }
+
+        se_detected = False
+        for flag_key, pattern_desc in social_engineering_patterns.items():
+            if flag_key in flags:
+                se_detected = True
+                modifier += 15.0
+                indicators.append(f"Suspicious pattern: {pattern_desc}")
+
         # Damping bonus: high liveness + very low AI prob
-        if liveness_score is not None and liveness_score > 0.85 and p_ai < 0.10:
+        if liveness_score is not None and liveness_score > 0.85 and p_ai < 0.10 and not se_detected:
             modifier -= 8.0
 
         final_score = round(min(100.0, max(0.0, raw_score + modifier)), 1)
@@ -148,6 +168,12 @@ class ThreatFusionEngine(BaseAIComponent):
             action = "CONTINUE_NORMAL"
             rec = "NORMAL: Voice stream appears authentic."
 
+        if se_detected:
+            rec = "Potential social-engineering risk detected. Verify the caller before sharing sensitive information."
+            if severity == "LOW":
+                severity = "MEDIUM"
+                action = "REQUIRE_VERIFICATION"
+
         if not indicators:
             indicators.append("No significant anomalies observed.")
 
@@ -165,6 +191,7 @@ class ThreatFusionEngine(BaseAIComponent):
             recommendation=rec,
             indicators=indicators,
             breakdown=breakdown,
+            social_engineering_risk=se_detected,
         )
 
 

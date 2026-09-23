@@ -31,16 +31,37 @@ class Settings(BaseSettings):
     # Default to SQLite for zero-configuration local runs & tests; easily switched to PostgreSQL
     DATABASE_URL: str = "sqlite+aiosqlite:///./voxshield.db"
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_url(cls, v: str) -> str:
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_ENABLED: bool = False
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "http://10.0.2.2",
+        "http://10.0.2.2:8000",
+        "http://10.0.2.2:5173",
+        "http://10.43.204.209",
+        "http://10.43.204.209:8000",
+        "http://10.43.204.209:5173",
+        "http://172.16.216.27:5173",
+        "http://10.217.194.209:5173",
     ]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")

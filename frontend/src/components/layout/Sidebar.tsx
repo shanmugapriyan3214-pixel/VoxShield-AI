@@ -1,15 +1,18 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  BarChart3,
-  Cpu,
+  ChevronLeft,
+  ChevronRight,
+  Code2,
   FileText,
+  GitCompare,
   LayoutDashboard,
   Mic,
   PhoneCall,
-  Settings,
+  Settings as SettingsIcon,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   Users,
   X,
 } from 'lucide-react';
@@ -17,21 +20,28 @@ import {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const navItems = [
   { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
-  { name: 'Calls', path: '/app/calls', icon: PhoneCall },
+  { name: 'Live Protection', path: '/app/calls', icon: PhoneCall },
+  { name: 'Voice Analyzer', path: '/app/analyzer', icon: Mic },
+  { name: 'Voice Verification', path: '/app/verify', icon: GitCompare },
   { name: 'Trusted Voices', path: '/app/trusted-voices', icon: Users },
-  { name: 'Voice Profile', path: '/app/voice-profile', icon: Mic },
-  { name: 'Security Events', path: '/app/security-events', icon: ShieldAlert },
-  { name: 'Incidents', path: '/app/incidents', icon: FileText },
-  { name: 'Analytics', path: '/app/analytics', icon: BarChart3 },
-  { name: 'AI Status', path: '/app/ai-status', icon: Cpu },
-  { name: 'Settings', path: '/app/settings', icon: Settings },
+  { name: 'Threat History', path: '/app/threat-history', icon: ShieldAlert },
+  { name: 'Incident Reports', path: '/app/incidents', icon: FileText },
+  { name: 'Security & Privacy', path: '/app/settings', icon: ShieldCheck },
+  { name: 'API / Integration', path: '/app/api-docs', icon: Code2 },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  onClose,
+  isCollapsed = false,
+  onToggleCollapse,
+}) => {
   return (
     <>
       {/* Mobile backdrop */}
@@ -43,36 +53,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 w-64 bg-cyber-surface border-r border-cyber-border flex flex-col transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 z-40 bg-[#0D131F] border-r border-[#1B253B] flex flex-col transition-all duration-300 shadow-xl md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${isCollapsed ? 'w-20' : 'w-64'}`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-cyber-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyber-cyan/15 border border-cyber-cyan/30 shadow-cyan-glow">
-              <Shield className="w-5 h-5 text-cyber-cyan" />
+        <div className="h-16 px-4 border-b border-[#1B253B] flex items-center justify-between">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shadow-cyan-glow shrink-0">
+              <Shield className="w-5 h-5" />
             </div>
-            <div>
-              <h1 className="text-sm font-bold tracking-wider text-cyber-text flex items-center gap-1.5">
-                VOXSHIELD <span className="text-cyber-cyan text-xs font-mono">AI</span>
-              </h1>
-              <p className="text-[10px] text-cyber-muted font-mono tracking-wider">
-                Trust Every Voice.
-              </p>
-            </div>
+            {!isCollapsed && (
+              <div className="truncate">
+                <h1 className="text-sm font-bold tracking-wider text-white flex items-center gap-1.5 font-sans">
+                  VOXSHIELD <span className="text-cyan-400 text-[10px] font-mono font-extrabold px-1 py-0.5 rounded bg-cyan-500/20">AI</span>
+                </h1>
+                <p className="text-[10px] text-slate-400 tracking-tight leading-tight">
+                  Voice Security &amp; Identity
+                </p>
+              </div>
+            )}
           </div>
 
           <button
             onClick={onClose}
-            className="md:hidden p-1.5 text-cyber-muted hover:text-cyber-text rounded-lg"
+            className="md:hidden p-1 text-slate-400 hover:text-white rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation links */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        {/* Navigation Section */}
+        <div className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto">
+          {!isCollapsed && (
+            <div className="px-3 pb-2 text-[10px] font-mono tracking-widest uppercase text-slate-400 font-bold">
+              Core Security Modules
+            </div>
+          )}
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -80,32 +97,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 key={item.path}
                 to={item.path}
                 onClick={onClose}
+                title={isCollapsed ? item.name : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-cyber-card border border-cyber-cyan/40 text-cyber-cyan shadow-cyan-glow'
-                      : 'text-cyber-muted hover:text-cyber-text hover:bg-cyber-card/60'
-                  }`
+                      ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm font-semibold'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+                  } ${isCollapsed ? 'justify-center px-2' : ''}`
                 }
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span>{item.name}</span>
+                <Icon className={`w-4 h-4 shrink-0 transition-colors`} />
+                {!isCollapsed && <span className="truncate">{item.name}</span>}
               </NavLink>
             );
           })}
-        </nav>
+        </div>
 
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-cyber-border">
-          <div className="bg-cyber-card/50 rounded-xl p-3 border border-cyber-border/60">
-            <div className="flex items-center justify-between text-[11px] font-mono text-cyber-muted mb-1">
-              <span>SECURITY ENGINE</span>
-              <span className="text-cyber-emerald font-bold">ONLINE</span>
+        {/* Footer with Collapse Toggle */}
+        <div className="p-3 border-t border-[#1B253B] flex items-center justify-between text-xs">
+          {!isCollapsed && (
+            <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>RADAR SHIELD ACTIVE</span>
             </div>
-            <div className="text-[10px] text-cyber-muted font-mono truncate">
-              DTLS-SRTP P2P Encrypted
-            </div>
-          </div>
+          )}
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition ml-auto"
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       </aside>
     </>

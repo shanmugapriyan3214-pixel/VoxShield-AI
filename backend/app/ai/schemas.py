@@ -16,6 +16,11 @@ class DeepfakeDetectionResult(BaseModel):
     speaker_match_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     liveness_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     confidence: float = Field(..., ge=0.0, le=1.0)
+    voice_trust_score: int = Field(default=85, ge=0, le=100)
+    audio_quality: Optional[dict] = None
+    signals: Optional[dict] = None
+    replay_suspicion: float = Field(default=0.0, ge=0.0, le=1.0)
+    evidence_summary: Optional[str] = None
     engine_type: str = Field(default=ENGINE_MOCK_DEMO, description="REAL_PRETRAINED_MODEL | LOCAL_DSP_ANALYZER | MOCK_DEMO_MODEL")
     model_name: Optional[str] = None
     model_version: str
@@ -23,6 +28,8 @@ class DeepfakeDetectionResult(BaseModel):
     is_mock: bool = True
     warning: Optional[str] = None
     detected_artifacts: List[str] = Field(default_factory=list)
+    diagnostics: Optional[dict] = None
+    disclaimer: Optional[str] = None
     timestamp: datetime
 
 

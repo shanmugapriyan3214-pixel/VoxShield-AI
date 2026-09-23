@@ -1,7 +1,12 @@
 import { ApiResponse, ApiError } from '../types/api';
 import { TokenPair } from '../types/auth';
+import { getApiBaseUrl } from '../platform/capacitor';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+// Platform-aware base URL resolution:
+// - Web browser: '/api/v1' (uses Vite dev proxy, existing behavior)
+// - Android native: 'http://10.0.2.2:8000/api/v1' (emulator host alias)
+// - Explicit env var: always takes priority on any platform
+const BASE_URL = getApiBaseUrl();
 
 // Safe localStorage helpers for SSR / non-browser test runners
 const getStorageItem = (key: string): string | null => {
@@ -69,13 +74,74 @@ export class ApiClientError extends Error {
   code: string;
   status: number;
   details: Array<{ field?: string; message: string }>;
+  technicalDetails?: string;
 
-  constructor(message: string, code = 'REQUEST_ERROR', status = 400, details: Array<{ field?: string; message: string }> = []) {
+  constructor(
+    message: string,
+    code = 'REQUEST_ERROR',
+    status = 400,
+    details: Array<{ field?: string; message: string }> = [],
+    technicalDetails?: string
+  ) {
     super(message);
     this.name = 'ApiClientError';
     this.code = code;
     this.status = status;
     this.details = details;
+    this.technicalDetails = technicalDetails;
+  }
+}
+
+export interface ServerHealthStatus {
+  isHealthy: boolean;
+  status: 'CONNECTED' | 'OFFLINE' | 'CHECKING';
+  service?: string;
+  version?: string;
+  details?: string;
+  lastChecked: Date;
+}
+
+/**
+ * Lightweight server connectivity probe.
+ * Does not spam console errors if offline.
+ */
+export async function checkServerHealth(): Promise<ServerHealthStatus> {
+  const healthEndpoint = BASE_URL.startsWith('http')
+    ? `${BASE_URL}/health`
+    : '/api/v1/health';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(healthEndpoint, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      return {
+        isHealthy: true,
+        status: 'CONNECTED',
+        service: data?.data?.service || 'VoxShield AI Defense Core',
+        version: data?.data?.version || '1.0.0',
+        lastChecked: new Date(),
+      };
+    }
+    return {
+      isHealthy: false,
+      status: 'OFFLINE',
+      details: `Server returned HTTP ${res.status}`,
+      lastChecked: new Date(),
+    };
+  } catch (err: any) {
+    return {
+      isHealthy: false,
+      status: 'OFFLINE',
+      details: 'Unable to connect to the VOXSHIELD security server. Please make sure the backend is running.',
+      lastChecked: new Date(),
+    };
   }
 }
 
@@ -86,7 +152,9 @@ async function request<T>(
   const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
   const headers = new Headers(options.headers || {});
 
-  headers.set('Content-Type', 'application/json');
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
   headers.set('X-Request-ID', `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`);
 
   if (currentAccessToken && !headers.has('Authorization')) {
@@ -168,7 +236,24 @@ async function request<T>(
     if (err instanceof ApiClientError) {
       throw err;
     }
-    throw new ApiClientError(err.message || 'Network connection failed', 'NETWORK_ERROR', 0);
+    const rawMessage = err.message || '';
+    const isNetwork =
+      rawMessage.toLowerCase().includes('failed to fetch') ||
+      rawMessage.toLowerCase().includes('network') ||
+      rawMessage.toLowerCase().includes('econnrefused') ||
+      rawMessage.toLowerCase().includes('abort');
+
+    const friendlyMessage = isNetwork
+      ? 'Unable to connect to the VOXSHIELD security server. Please make sure the backend is running.'
+      : (err.message || 'Network connection failed');
+
+    throw new ApiClientError(
+      friendlyMessage,
+      isNetwork ? 'NETWORK_ERROR' : 'REQUEST_ERROR',
+      0,
+      [],
+      rawMessage
+    );
   }
 }
 
@@ -200,4 +285,9 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+  postFormData: <T>(endpoint: string, formData: FormData) =>
+    request<T>(endpoint, {
+      method: 'POST',
+      body: formData,
+    }),
 };

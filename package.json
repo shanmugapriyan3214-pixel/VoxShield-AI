@@ -1,5 +1,19 @@
 {
+  "name": "voxshield-ai",
+  "version": "3.0.0",
+  "private": true,
+  "description": "VoxShield AI — Real-Time Voice Deepfake & Spoofing Detection Platform",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File dev.ps1",
+    "dev:backend": "powershell -ExecutionPolicy Bypass -Command \"Set-Location backend; ../.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload\"",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "test:backend": "powershell -ExecutionPolicy Bypass -Command \".venv/Scripts/python.exe -m pytest backend/tests/ -q\"",
+    "test:frontend": "npm run test --prefix frontend",
+    "install:frontend": "npm install --prefix frontend"
+  },
   "devDependencies": {
+    "concurrently": "^9.2.0",
     "puppeteer-core": "^25.10.0"
   }
 }

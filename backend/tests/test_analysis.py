@@ -16,7 +16,7 @@ async def test_audio_file_upload_analysis(client: AsyncClient, test_user_alice, 
     data = response.json()["data"]
     assert "analysis_id" in data
     assert data["status"] == "COMPLETED"
-    assert data["classification"] in ("LIKELY_HUMAN", "LIKELY_AI_GENERATED", "SUSPICIOUS", "UNKNOWN")
+    assert data["classification"] in ("LIKELY_HUMAN", "LIKELY_AI_GENERATED", "HUMAN", "AI_GENERATED", "SUSPICIOUS", "UNKNOWN", "UNCERTAIN")
     assert 0.0 <= data["ai_probability"] <= 1.0
     assert 0.0 <= data["human_probability"] <= 1.0
     assert data["is_mock"] in (True, False)

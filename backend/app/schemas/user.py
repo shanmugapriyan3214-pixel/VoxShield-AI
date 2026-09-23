@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class UserBase(BaseModel):
@@ -28,6 +28,14 @@ class UserPublic(BaseModel):
     username: str
     display_name: str
     avatar_url: Optional[str] = None
+    voxshield_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def ensure_voxshield_id(self) -> "UserPublic":
+        if not self.voxshield_id and self.id:
+            clean = self.id.replace("-", "").upper()
+            self.voxshield_id = f"VS-{clean[:8]}"
+        return self
 
 
 class UserPrivate(UserBase):
@@ -35,9 +43,17 @@ class UserPrivate(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    voxshield_id: Optional[str] = None
     avatar_url: Optional[str] = None
     is_verified: bool
     is_active: bool
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def ensure_voxshield_id(self) -> "UserPrivate":
+        if not self.voxshield_id and self.id:
+            clean = self.id.replace("-", "").upper()
+            self.voxshield_id = f"VS-{clean[:8]}"
+        return self

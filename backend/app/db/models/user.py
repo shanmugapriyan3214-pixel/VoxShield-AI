@@ -15,6 +15,11 @@ if TYPE_CHECKING:
     from app.db.models.threat import ThreatEvent
 
 
+def generate_voxshield_id() -> str:
+    import uuid
+    return f"VS-{uuid.uuid4().hex[:8].upper()}"
+
+
 class User(Base, TimestampMixin):
     """User account entity."""
 
@@ -50,6 +55,13 @@ class User(Base, TimestampMixin):
         String(512),
         nullable=True,
     )
+    voxshield_id: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        unique=True,
+        index=True,
+        nullable=True,
+        default=generate_voxshield_id,
+    )
     is_verified: Mapped[bool] = mapped_column(
         Boolean,
         default=False,
@@ -60,6 +72,14 @@ class User(Base, TimestampMixin):
         default=True,
         nullable=False,
     )
+
+    @property
+    def safe_voxshield_id(self) -> str:
+        """Safe public identifier, e.g. VS-XXXXXXXX."""
+        if self.voxshield_id:
+            return self.voxshield_id
+        clean = self.id.replace("-", "").upper()
+        return f"VS-{clean[:8]}"
     last_login_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

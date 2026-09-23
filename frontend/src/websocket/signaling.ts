@@ -1,4 +1,5 @@
 import { getAccessToken } from '../api/client';
+import { getWsBaseUrl } from '../platform/capacitor';
 
 export type SignalingMessageType =
   | 'ping'
@@ -58,7 +59,7 @@ export class SignalingClient {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_WS_BASE_URL || (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + `//${window.location.host}/api/v1`;
+    const wsUrl = getWsBaseUrl();
     const fullUrl = `${wsUrl}/ws/signaling/${this.callId}?token=${encodeURIComponent(token)}`;
 
     try {
